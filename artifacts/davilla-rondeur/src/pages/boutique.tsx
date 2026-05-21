@@ -31,9 +31,9 @@ export default function Boutique() {
     <Layout>
       <div className="bg-muted/30 py-16">
         <div className="container mx-auto px-4 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">La Boutique</h1>
+          <h1 className="text-4xl md:text-5xl font-sans font-bold text-foreground mb-4">La Boutique</h1>
           <p className="font-sans text-muted-foreground max-w-2xl mx-auto">
-            Découvrez nos collections pensées pour sublimer chaque silhouette. Une sélection de pièces raffinées, où le confort rencontre l'élégance absolue.
+            Découvrez nos formules naturelles conçues pour sublimer vos courbes, booster votre vitalité et prendre soin de vous de l'intérieur.
           </p>
         </div>
       </div>
