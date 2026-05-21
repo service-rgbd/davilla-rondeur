@@ -1,3 +1,5 @@
+import heroBg from "@assets/background_1779401934859.jpg";
+export { heroBg };
 import siropMenthePrimary from "@assets/photo_2026-05-21_22.01.40_1779400929063.jpeg";
 import siropMentheSecondary from "@assets/photo_2026-05-21_22.01.50_1779400929061.jpeg";
 import siropMielPrimary from "@assets/photo_2026-05-21_22.00.57_1779400929066.jpeg";
