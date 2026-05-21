@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Davilla Rondeur"
+version = "1.0.0"
+id = "artifacts/davilla-rondeur"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19957
+
+[services.development]
+run = "pnpm --filter @workspace/davilla-rondeur run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/davilla-rondeur", "run", "build" ]
+publicDir = "artifacts/davilla-rondeur/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19957"
+BASE_PATH = "/"

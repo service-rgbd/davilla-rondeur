@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "ASrpIhggoCv5B3bgg_Vo3"
+uri = "file://artifacts/davilla-rondeur/public/images/hero.png"
+type = "image"
+title = "tasteful lingerie editorial background"
+
+[[generated]]
+id = "hyWLGttxoq3XrKUPTtiFc"
+uri = "file://artifacts/davilla-rondeur/public/images/category-lingerie.png"
+type = "image"
+title = "Lingerie and Body category"
+
+[[generated]]
+id = "hFwQs5KmrMqTemHIn4S5d"
+uri = "file://artifacts/davilla-rondeur/public/images/category-accessories.png"
+type = "image"
+title = "Accessories and Toys category"
+
+[[generated]]
+id = "X_4btLr-NA1Qc-hmYujxB"
+uri = "file://artifacts/davilla-rondeur/public/images/category-wellness.png"
+type = "image"
+title = "Intimate wellness category"
+
+[[generated]]
+id = "ndUGkkizDVMX1AGJ6ozsk"
+uri = "file://artifacts/davilla-rondeur/public/images/univers.png"
+type = "image"
+title = "Univers Davilla editorial image"
