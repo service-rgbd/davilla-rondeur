@@ -142,11 +142,11 @@ export default function ProductDetail() {
 
             <div className="flex items-end gap-4 mb-8">
               <span className="text-2xl font-sans font-semibold text-foreground">
-                {product.price.toLocaleString("fr-FR")} FCFA
+                {product.price.toFixed(2)} €
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <span className="text-lg font-sans text-muted-foreground line-through mb-1">
-                  {product.originalPrice.toLocaleString("fr-FR")} FCFA
+                  {product.originalPrice.toFixed(2)} €
                 </span>
               )}
             </div>

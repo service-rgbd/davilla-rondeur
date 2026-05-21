@@ -71,15 +71,15 @@ export function ProductCard({ product }: { product: Product }) {
           {product.originalPrice && product.originalPrice > product.price ? (
             <>
               <span className="text-muted-foreground line-through decoration-muted-foreground/50">
-                {product.originalPrice.toLocaleString("fr-FR")} FCFA
+                {product.originalPrice.toFixed(2)} €
               </span>
               <span className="text-primary font-semibold">
-                {product.price.toLocaleString("fr-FR")} FCFA
+                {product.price.toFixed(2)} €
               </span>
             </>
           ) : (
             <span className="text-foreground font-medium">
-              {product.price.toLocaleString("fr-FR")} FCFA
+              {product.price.toFixed(2)} €
             </span>
           )}
         </div>
