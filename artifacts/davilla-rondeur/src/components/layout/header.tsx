@@ -3,9 +3,8 @@ import { useGetCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { getSessionId } from "@/lib/session";
 import { ShoppingBag, Search, User, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function Header() {
   const [location, setLocation] = useLocation();
@@ -57,8 +56,8 @@ export function Header() {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="text-2xl md:text-3xl font-serif tracking-wide text-foreground flex-shrink-0" data-testid="link-home">
-            Davilla Rondeur
+          <Link href="/" className="flex-shrink-0" data-testid="link-home">
+            <BrandLogo size="md" />
           </Link>
 
           {/* Desktop Nav */}
@@ -102,7 +101,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-background flex flex-col animate-in slide-in-from-left">
           <div className="p-5 flex justify-between items-center border-b border-border">
-            <span className="text-2xl font-serif tracking-wide text-foreground">Davilla</span>
+            <BrandLogo size="sm" />
             <button onClick={() => setMobileMenuOpen(false)} className="p-2" data-testid="button-close-menu">
               <X className="w-6 h-6" strokeWidth={1.5} />
             </button>
