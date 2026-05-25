@@ -15,10 +15,14 @@ tags:
     description: Product categories
   - name: cart
     description: Shopping cart
+  - name: checkout
+    description: Stripe checkout
   - name: orders
     description: Orders management
   - name: newsletter
     description: Newsletter subscriptions
+  - name: admin
+    description: Admin back-office
 
 paths:
   /healthz:
@@ -155,6 +159,36 @@ paths:
                 $ref: "#/components/schemas/Cart"
 
   /cart/{itemId}:
+    patch:
+      operationId: updateCartItem
+      tags: [cart]
+      summary: Update cart item quantity
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCartItemInput"
+      responses:
+        "200":
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
     delete:
       operationId: removeFromCart
       tags: [cart]
@@ -172,6 +206,248 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Cart"
+
+  /checkout/sessions:
+    post:
+      operationId: createCheckoutSession
+      tags: [checkout]
+      summary: Create a Stripe Checkout session from the current cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutSessionInput"
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Cart empty or product unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders/by-stripe-session/{stripeSessionId}:
+    get:
+      operationId: getOrderByStripeSession
+      tags: [orders]
+      summary: Get order by Stripe Checkout session ID
+      parameters:
+        - name: stripeSessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/products:
+    get:
+      operationId: adminListProducts
+      tags: [admin]
+      summary: List all products (admin)
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: adminCreateProduct
+      tags: [admin]
+      summary: Create a product
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateProductInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/products/{id}:
+    get:
+      operationId: adminGetProduct
+      tags: [admin]
+      summary: Get product by ID (admin)
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: adminUpdateProduct
+      tags: [admin]
+      summary: Update a product
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateProductInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: adminDeleteProduct
+      tags: [admin]
+      summary: Delete a product
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/uploads/presign:
+    post:
+      operationId: adminPresignUpload
+      tags: [admin]
+      summary: Get a presigned URL for R2 image upload
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PresignUploadInput"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresignUploadResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /newsletter:
     post:
@@ -199,6 +475,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
 components:
+  securitySchemes:
+    adminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -316,6 +598,104 @@ components:
         color:
           type: ["string", "null"]
 
+    UpdateCartItemInput:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    CreateCheckoutSessionInput:
+      type: object
+      required: [sessionId, email]
+      properties:
+        sessionId:
+          type: string
+        email:
+          type: string
+          format: email
+
+    CheckoutSessionResponse:
+      type: object
+      required: [url, orderId]
+      properties:
+        url:
+          type: string
+        orderId:
+          type: integer
+
+    ShippingAddress:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        line1:
+          type: ["string", "null"]
+        line2:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        postalCode:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+
+    OrderItem:
+      type: object
+      required: [id, productId, productName, price, quantity]
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        productImageUrl:
+          type: ["string", "null"]
+        price:
+          type: number
+        quantity:
+          type: integer
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+
+    Order:
+      type: object
+      required: [id, email, status, items, subtotal, shippingAmount, total, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered, cancelled]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        subtotal:
+          type: number
+        shippingAmount:
+          type: number
+        total:
+          type: number
+        shippingAddress:
+          oneOf:
+            - $ref: "#/components/schemas/ShippingAddress"
+            - type: "null"
+        stripeSessionId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: ["string", "null"]
+          format: date-time
+
     NewsletterInput:
       type: object
       required: [email]
@@ -336,4 +716,116 @@ components:
       required: [error]
       properties:
         error:
+          type: string
+
+    AdminLoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AdminAuthResponse:
+      type: object
+      required: [token, email]
+      properties:
+        token:
+          type: string
+        email:
+          type: string
+
+    AdminCreateProductInput:
+      type: object
+      required: [name, price, categoryId]
+      properties:
+        name:
+          type: string
+        slug:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        originalPrice:
+          type: ["number", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        images:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: integer
+        label:
+          type: ["string", "null"]
+        inStock:
+          type: boolean
+        featured:
+          type: boolean
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+
+    AdminUpdateProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        originalPrice:
+          type: ["number", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        images:
+          type: array
+          items:
+            type: string
+        categoryId:
+          type: integer
+        label:
+          type: ["string", "null"]
+        inStock:
+          type: boolean
+        featured:
+          type: boolean
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+
+    PresignUploadInput:
+      type: object
+      required: [filename, contentType]
+      properties:
+        filename:
+          type: string
+        contentType:
+          type: string
+
+    PresignUploadResponse:
+      type: object
+      required: [uploadUrl, publicUrl, key]
+      properties:
+        uploadUrl:
+          type: string
+        publicUrl:
+          type: string
+        key:
           type: string

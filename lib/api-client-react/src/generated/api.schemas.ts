@@ -76,6 +76,77 @@ export interface CartItemInput {
   color?: string | null;
 }
 
+export interface UpdateCartItemInput {
+  /** @minimum 1 */
+  quantity: number;
+}
+
+export interface CreateCheckoutSessionInput {
+  sessionId: string;
+  email: string;
+}
+
+export interface CheckoutSessionResponse {
+  url: string;
+  orderId: number;
+}
+
+export interface ShippingAddress {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  line1?: string | null;
+  /** @nullable */
+  line2?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  postalCode?: string | null;
+  /** @nullable */
+  country?: string | null;
+}
+
+export interface OrderItem {
+  id: number;
+  productId: number;
+  productName: string;
+  /** @nullable */
+  productImageUrl?: string | null;
+  price: number;
+  quantity: number;
+  /** @nullable */
+  size?: string | null;
+  /** @nullable */
+  color?: string | null;
+}
+
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+
+export const OrderStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Order {
+  id: number;
+  email: string;
+  status: OrderStatus;
+  items: OrderItem[];
+  subtotal: number;
+  shippingAmount: number;
+  total: number;
+  shippingAddress?: ShippingAddress | null;
+  /** @nullable */
+  stripeSessionId?: string | null;
+  createdAt: string;
+  /** @nullable */
+  paidAt?: string | null;
+}
+
 export interface NewsletterInput {
   email: string;
 }
@@ -86,6 +157,68 @@ export interface SuccessResponse {
 
 export interface ErrorResponse {
   error: string;
+}
+
+export interface AdminLoginInput {
+  email: string;
+  password: string;
+}
+
+export interface AdminAuthResponse {
+  token: string;
+  email: string;
+}
+
+export interface AdminCreateProductInput {
+  name: string;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  description?: string | null;
+  price: number;
+  /** @nullable */
+  originalPrice?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  images?: string[];
+  categoryId: number;
+  /** @nullable */
+  label?: string | null;
+  inStock?: boolean;
+  featured?: boolean;
+  sizes?: string[];
+  colors?: string[];
+}
+
+export interface AdminUpdateProductInput {
+  name?: string;
+  slug?: string;
+  /** @nullable */
+  description?: string | null;
+  price?: number;
+  /** @nullable */
+  originalPrice?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  images?: string[];
+  categoryId?: number;
+  /** @nullable */
+  label?: string | null;
+  inStock?: boolean;
+  featured?: boolean;
+  sizes?: string[];
+  colors?: string[];
+}
+
+export interface PresignUploadInput {
+  filename: string;
+  contentType: string;
+}
+
+export interface PresignUploadResponse {
+  uploadUrl: string;
+  publicUrl: string;
+  key: string;
 }
 
 export type ListProductsParams = {

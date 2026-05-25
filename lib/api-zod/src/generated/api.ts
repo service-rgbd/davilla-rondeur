@@ -160,6 +160,37 @@ export const AddToCartResponse = zod.object({
 
 
 /**
+ * @summary Update cart item quantity
+ */
+export const UpdateCartItemParams = zod.object({
+  "itemId": zod.coerce.number()
+})
+
+
+
+
+export const UpdateCartItemBody = zod.object({
+  "quantity": zod.number().min(1)
+})
+
+export const UpdateCartItemResponse = zod.object({
+  "sessionId": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "productImageUrl": zod.string().nullish(),
+  "price": zod.number(),
+  "quantity": zod.number(),
+  "size": zod.string().nullish(),
+  "color": zod.string().nullish()
+})),
+  "total": zod.number(),
+  "itemCount": zod.number()
+})
+
+
+/**
  * @summary Remove item from cart
  */
 export const RemoveFromCartParams = zod.object({
@@ -180,6 +211,210 @@ export const RemoveFromCartResponse = zod.object({
 })),
   "total": zod.number(),
   "itemCount": zod.number()
+})
+
+
+/**
+ * @summary Create a Stripe Checkout session from the current cart
+ */
+export const CreateCheckoutSessionBody = zod.object({
+  "sessionId": zod.string(),
+  "email": zod.string().email()
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "url": zod.string(),
+  "orderId": zod.number()
+})
+
+
+/**
+ * @summary Get order by Stripe Checkout session ID
+ */
+export const GetOrderByStripeSessionParams = zod.object({
+  "stripeSessionId": zod.coerce.string()
+})
+
+export const GetOrderByStripeSessionResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "productImageUrl": zod.string().nullish(),
+  "price": zod.number(),
+  "quantity": zod.number(),
+  "size": zod.string().nullish(),
+  "color": zod.string().nullish()
+})),
+  "subtotal": zod.number(),
+  "shippingAmount": zod.number(),
+  "total": zod.number(),
+  "shippingAddress": zod.union([zod.object({
+  "name": zod.string().nullish(),
+  "line1": zod.string().nullish(),
+  "line2": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "country": zod.string().nullish()
+}),zod.null()]).optional(),
+  "stripeSessionId": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Admin login
+ */
+export const AdminLoginBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string()
+})
+
+export const AdminLoginResponse = zod.object({
+  "token": zod.string(),
+  "email": zod.string()
+})
+
+
+/**
+ * @summary List all products (admin)
+ */
+export const AdminListProductsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "price": zod.number(),
+  "originalPrice": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional(),
+  "categoryId": zod.number(),
+  "categoryName": zod.string().nullish(),
+  "label": zod.string().nullish().describe('e.g. Nouveauté, Best-seller'),
+  "inStock": zod.boolean(),
+  "featured": zod.boolean().optional(),
+  "sizes": zod.array(zod.string()).optional(),
+  "colors": zod.array(zod.string()).optional(),
+  "slug": zod.string().optional()
+})
+export const AdminListProductsResponse = zod.array(AdminListProductsResponseItem)
+
+
+/**
+ * @summary Create a product
+ */
+export const AdminCreateProductBody = zod.object({
+  "name": zod.string(),
+  "slug": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "price": zod.number(),
+  "originalPrice": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional(),
+  "categoryId": zod.number(),
+  "label": zod.string().nullish(),
+  "inStock": zod.boolean().optional(),
+  "featured": zod.boolean().optional(),
+  "sizes": zod.array(zod.string()).optional(),
+  "colors": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Get product by ID (admin)
+ */
+export const AdminGetProductParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminGetProductResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "price": zod.number(),
+  "originalPrice": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional(),
+  "categoryId": zod.number(),
+  "categoryName": zod.string().nullish(),
+  "label": zod.string().nullish().describe('e.g. Nouveauté, Best-seller'),
+  "inStock": zod.boolean(),
+  "featured": zod.boolean().optional(),
+  "sizes": zod.array(zod.string()).optional(),
+  "colors": zod.array(zod.string()).optional(),
+  "slug": zod.string().optional()
+})
+
+
+/**
+ * @summary Update a product
+ */
+export const AdminUpdateProductParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminUpdateProductBody = zod.object({
+  "name": zod.string().optional(),
+  "slug": zod.string().optional(),
+  "description": zod.string().nullish(),
+  "price": zod.number().optional(),
+  "originalPrice": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional(),
+  "categoryId": zod.number().optional(),
+  "label": zod.string().nullish(),
+  "inStock": zod.boolean().optional(),
+  "featured": zod.boolean().optional(),
+  "sizes": zod.array(zod.string()).optional(),
+  "colors": zod.array(zod.string()).optional()
+})
+
+export const AdminUpdateProductResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "price": zod.number(),
+  "originalPrice": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional(),
+  "categoryId": zod.number(),
+  "categoryName": zod.string().nullish(),
+  "label": zod.string().nullish().describe('e.g. Nouveauté, Best-seller'),
+  "inStock": zod.boolean(),
+  "featured": zod.boolean().optional(),
+  "sizes": zod.array(zod.string()).optional(),
+  "colors": zod.array(zod.string()).optional(),
+  "slug": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete a product
+ */
+export const AdminDeleteProductParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminDeleteProductResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Get a presigned URL for R2 image upload
+ */
+export const AdminPresignUploadBody = zod.object({
+  "filename": zod.string(),
+  "contentType": zod.string()
+})
+
+export const AdminPresignUploadResponse = zod.object({
+  "uploadUrl": zod.string(),
+  "publicUrl": zod.string(),
+  "key": zod.string()
 })
 
 

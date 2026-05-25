@@ -1,44 +1,29 @@
-import heroBg from "@assets/background_1779401934859.jpg";
-export { heroBg };
-import siropMenthePrimary from "@assets/photo_2026-05-21_22.01.40_1779400929063.jpeg";
-import siropMentheSecondary from "@assets/photo_2026-05-21_22.01.50_1779400929061.jpeg";
-import siropMielPrimary from "@assets/photo_2026-05-21_22.00.57_1779400929066.jpeg";
-import siropMielSecondary from "@assets/photo_2026-05-21_22.01.33_1779400929064.jpeg";
-import bodyBoosterPrimary from "@assets/photo_2026-05-21_22.01.10_1779400929066.jpeg";
-import bodyBoosterSecondary from "@assets/photo_2026-05-21_22.01.23_1779400929064.jpeg";
-import allProducts from "@assets/photo_2026-05-21_22.01.23_1779400929064.jpeg";
-
-export const PRODUCT_IMAGES: Record<string, { primary: string; gallery: string[] }> = {
-  "sirop-menthe": {
-    primary: siropMenthePrimary,
-    gallery: [siropMenthePrimary, siropMentheSecondary],
-  },
-  "sirop-miel": {
-    primary: siropMielPrimary,
-    gallery: [siropMielPrimary, siropMielSecondary],
-  },
-  "body-booster-cure-kayana": {
-    primary: bodyBoosterPrimary,
-    gallery: [bodyBoosterPrimary, bodyBoosterSecondary],
-  },
-  "coffret-duo-sirops": {
-    primary: siropMielSecondary,
-    gallery: [siropMielSecondary, allProducts],
-  },
-};
+import type { Product } from "@workspace/api-client-react";
 
 export const CATEGORY_IMAGES: Record<string, string> = {
-  "sirops-naturels": siropMenthePrimary,
-  "complements-alimentaires": bodyBoosterPrimary,
-  "soins-bien-etre": allProducts,
+  "sirops-naturels": "/images/Sirop-menthe.jpeg",
+  "complements-alimentaires": "/images/Body-booster-prise-de-poids.jpeg",
+  "soins-bien-etre": "/images/Sirop-booster-cure-kayana.jpeg",
 };
 
-export const HERO_IMAGE = allProducts;
+export const HERO_IMAGE = "/images/photo_2026-05-24%2017.46.23.jpeg";
 
-export function getProductImage(slug: string): string {
-  return PRODUCT_IMAGES[slug]?.primary ?? "";
+export function resolveProductImage(product: Pick<Product, "imageUrl" | "images">): string {
+  return product.imageUrl || product.images?.[0] || "";
 }
 
-export function getProductGallery(slug: string): string[] {
-  return PRODUCT_IMAGES[slug]?.gallery ?? [];
+export function resolveProductGallery(product: Pick<Product, "imageUrl" | "images">): string[] {
+  if (product.images?.length) return product.images;
+  if (product.imageUrl) return [product.imageUrl];
+  return [];
+}
+
+/** @deprecated Utiliser resolveProductImage(product) — les images viennent de la DB / R2 */
+export function getProductImage(_slug: string | undefined): string {
+  return "";
+}
+
+/** @deprecated Utiliser resolveProductGallery(product) */
+export function getProductGallery(_slug: string | undefined): string[] {
+  return [];
 }

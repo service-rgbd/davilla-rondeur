@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { getProductGallery } from "@/lib/product-images";
+import { resolveProductGallery } from "@/lib/product-images";
 
 export default function ProductDetail() {
   const [, params] = useRoute("/produit/:slug");
@@ -88,8 +88,8 @@ export default function ProductDetail() {
     );
   }
 
-  const gallery = getProductGallery(product.slug);
-  const images = gallery.length > 0 ? gallery : [product.imageUrl].filter(Boolean) as string[];
+  const gallery = resolveProductGallery(product);
+  const images = gallery.length > 0 ? gallery : [];
 
   return (
     <Layout>

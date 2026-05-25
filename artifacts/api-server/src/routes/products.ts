@@ -1,30 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, productsTable, categoriesTable } from "@workspace/db";
 import {
   ListProductsQueryParams,
   GetProductParams,
 } from "@workspace/api-zod";
+import { buildProductResponse } from "../lib/products";
 
 const router: IRouter = Router();
-
-const buildProductResponse = (p: typeof productsTable.$inferSelect, c: typeof categoriesTable.$inferSelect | null) => ({
-  id: p.id,
-  name: p.name,
-  slug: p.slug,
-  description: p.description,
-  price: parseFloat(p.price),
-  originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : null,
-  imageUrl: p.imageUrl,
-  images: p.images ?? [],
-  categoryId: p.categoryId,
-  categoryName: c?.name ?? null,
-  label: p.label,
-  inStock: p.inStock,
-  featured: p.featured,
-  sizes: p.sizes ?? [],
-  colors: p.colors ?? [],
-});
 
 router.get("/products/featured", async (req, res): Promise<void> => {
   const rows = await db
@@ -34,7 +17,7 @@ router.get("/products/featured", async (req, res): Promise<void> => {
     .where(eq(productsTable.featured, true))
     .limit(6);
 
-  res.json(rows.map(r => buildProductResponse(r.products, r.categories)));
+  res.json(rows.map((r) => buildProductResponse(r.products, r.categories)));
 });
 
 router.get("/products", async (req, res): Promise<void> => {
@@ -59,7 +42,7 @@ router.get("/products", async (req, res): Promise<void> => {
   if (limit != null) query.limit(limit);
 
   const rows = await query;
-  res.json(rows.map(r => buildProductResponse(r.products, r.categories)));
+  res.json(rows.map((r) => buildProductResponse(r.products, r.categories)));
 });
 
 router.get("/products/:id", async (req, res): Promise<void> => {

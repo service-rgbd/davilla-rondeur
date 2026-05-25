@@ -7,8 +7,8 @@ import { ProductCard } from "@/components/product-card";
 import { Package, Lock, HeartHandshake, Leaf, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { heroBg, CATEGORY_IMAGES } from "@/lib/product-images";
-import { BrandLogo } from "@/components/brand-logo";
+import { HERO_IMAGE, CATEGORY_IMAGES } from "@/lib/product-images";
+import { HeroBrandTitle } from "@/components/hero-brand-title";
 
 export default function Home() {
   const { data: featuredProducts, isLoading } = useListFeaturedProducts();
@@ -38,13 +38,11 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative h-[85vh] min-h-[600px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={heroBg} alt="Davilla Rondeur" className="w-full h-full object-cover object-center" />
+          <img src={HERO_IMAGE} alt="Davilla Rondeur" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
         </div>
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto text-white mt-20">
-          <h1 className="flex justify-center mb-10">
-            <BrandLogo size="xl" inverted />
-          </h1>
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto text-white mt-16 md:mt-20 w-full">
+          <HeroBrandTitle />
           <p className="text-lg md:text-xl font-sans font-light mb-12 opacity-90 tracking-wide max-w-2xl mx-auto">
             Des formules naturelles pour sublimer vos courbes, votre vitalité et votre bien-être.
           </p>

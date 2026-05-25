@@ -1,15 +1,19 @@
 import { Layout } from "@/components/layout/layout";
 import { useGetCart, useRemoveFromCart, getGetCartQueryKey, useListProducts } from "@workspace/api-client-react";
 import { getSessionId } from "@/lib/session";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Trash2, ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export default function Cart() {
   const sessionId = getSessionId();
   const queryClient = useQueryClient();
+  const search = useSearch();
+  const { toast } = useToast();
 
   const { data: cart, isLoading } = useGetCart(
     { sessionId },
@@ -33,7 +37,7 @@ export default function Cart() {
 
   const getCartItemImage = (productId: number): string => {
     const product = allProducts?.find((p) => p.id === productId);
-    if (product) return getProductImage(product.slug) || product.imageUrl || "";
+    if (product) return resolveProductImage(product) || product.imageUrl || "";
     return "";
   };
 
@@ -42,6 +46,16 @@ export default function Cart() {
   };
 
   const isEmpty = !cart || cart.items.length === 0;
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("checkout") === "cancelled") {
+      toast({
+        title: "Paiement annulé",
+        description: "Votre panier est toujours disponible. Reprenez quand vous le souhaitez.",
+      });
+    }
+  }, [search, toast]);
 
   return (
     <Layout>
@@ -170,12 +184,14 @@ export default function Cart() {
                 </div>
 
                 <Button
+                  asChild
                   className="w-full bg-foreground text-background hover:bg-primary rounded-none h-14 font-sans uppercase tracking-widest text-sm group"
-                  disabled={true}
                   data-testid="button-checkout"
                 >
-                  Procéder au paiement
-                  <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <Link href="/checkout">
+                    Procéder au paiement
+                    <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
                 </Button>
 
                 <div className="mt-6 flex justify-center gap-4 opacity-50">

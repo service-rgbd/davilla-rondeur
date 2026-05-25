@@ -2,11 +2,11 @@ import { useLocation } from "wouter";
 import { Product } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 
 export function ProductCard({ product }: { product: Product }) {
   const [, setLocation] = useLocation();
-  const imageUrl = getProductImage(product.slug) || product.imageUrl;
+  const imageUrl = resolveProductImage(product);
 
   return (
     <div

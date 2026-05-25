@@ -10,6 +10,11 @@ import Univers from "@/pages/univers";
 import FAQ from "@/pages/faq";
 import Contact from "@/pages/contact";
 import Cart from "@/pages/cart";
+import Checkout from "@/pages/checkout";
+import OrderSuccess from "@/pages/order-success";
+import AdminLogin from "@/pages/admin/login";
+import AdminProducts from "@/pages/admin/products/index";
+import AdminProductEdit from "@/pages/admin/products/edit";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -24,6 +29,11 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/contact" component={Contact} />
       <Route path="/panier" component={Cart} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/commande/succes" component={OrderSuccess} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/products" component={AdminProducts} />
+      <Route path="/admin/products/:id" component={AdminProductEdit} />
       <Route component={NotFound} />
     </Switch>
   );

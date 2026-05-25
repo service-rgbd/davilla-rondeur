@@ -2,9 +2,35 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import { handleStripeWebhook } from "./routes/webhooks";
+import { getFrontendUrl } from "./lib/stripe";
 import { logger } from "./lib/logger";
 
+function getAllowedOrigins(): string[] {
+  const frontendUrl = getFrontendUrl().replace(/\/+$/, "");
+  const origins = new Set<string>([
+    frontendUrl,
+    "https://davilla-rondeur.fr",
+    "https://www.davilla-rondeur.fr",
+    "http://localhost:19957",
+    "http://localhost:5173",
+  ]);
+
+  if (process.env.NODE_ENV !== "production") {
+    origins.add("http://127.0.0.1:19957");
+    origins.add("http://127.0.0.1:5173");
+  }
+
+  return [...origins];
+}
+
 const app: Express = express();
+
+app.post(
+  "/api/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  handleStripeWebhook,
+);
 
 app.use(
   pinoHttp({
@@ -25,7 +51,18 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || getAllowedOrigins().includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

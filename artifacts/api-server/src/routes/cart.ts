@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, cartItemsTable, productsTable } from "@workspace/db";
-import { AddToCartBody, RemoveFromCartParams, GetCartQueryParams } from "@workspace/api-zod";
+import { AddToCartBody, RemoveFromCartParams, GetCartQueryParams, UpdateCartItemBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -95,6 +95,43 @@ router.post("/cart", async (req, res): Promise<void> => {
     .where(eq(cartItemsTable.sessionId, sessionId));
 
   res.json(buildCart(sessionId, items));
+});
+
+router.patch("/cart/:itemId", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.itemId) ? req.params.itemId[0] : req.params.itemId;
+  const params = RemoveFromCartParams.safeParse({ itemId: parseInt(raw, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = UpdateCartItemBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(cartItemsTable)
+    .where(eq(cartItemsTable.id, params.data.itemId));
+
+  if (!existing) {
+    res.status(404).json({ error: "Article introuvable" });
+    return;
+  }
+
+  await db
+    .update(cartItemsTable)
+    .set({ quantity: parsed.data.quantity })
+    .where(eq(cartItemsTable.id, params.data.itemId));
+
+  const items = await db
+    .select()
+    .from(cartItemsTable)
+    .where(eq(cartItemsTable.sessionId, existing.sessionId));
+
+  res.json(buildCart(existing.sessionId, items));
 });
 
 router.delete("/cart/:itemId", async (req, res): Promise<void> => {

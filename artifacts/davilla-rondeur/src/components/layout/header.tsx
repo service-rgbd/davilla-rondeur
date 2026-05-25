@@ -34,7 +34,7 @@ export function Header() {
 
   return (
     <>
-      <div className="bg-primary text-primary-foreground text-xs py-1.5 px-4 flex justify-between items-center hidden md:flex font-sans tracking-wide">
+      <div className="bg-primary text-primary-foreground text-xs py-1 px-4 flex justify-between items-center hidden md:flex font-sans tracking-wide">
         <span>Livraison discrète & sécurisée</span>
         <span>Paiement 100% sécurisé</span>
         <span>Service clientèle confidentiel</span>
@@ -42,13 +42,13 @@ export function Header() {
       <header
         className={cn(
           "sticky top-0 z-50 w-full transition-all duration-300 border-b border-transparent",
-          isScrolled ? "bg-background/95 backdrop-blur-md border-border py-3 shadow-sm" : "bg-background py-5"
+          isScrolled ? "bg-background/95 backdrop-blur-md border-border py-1.5 shadow-sm" : "bg-background py-2"
         )}
       >
-        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between">
+        <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 min-h-0">
           {/* Mobile Menu Toggle */}
           <button 
-            className="md:hidden p-2 -ml-2 text-foreground"
+            className="md:hidden p-1.5 -ml-1.5 text-foreground shrink-0"
             onClick={() => setMobileMenuOpen(true)}
             data-testid="button-mobile-menu"
           >
@@ -56,8 +56,8 @@ export function Header() {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0" data-testid="link-home">
-            <BrandLogo size="md" />
+          <Link href="/" className="flex-shrink-0 leading-none" data-testid="link-home">
+            <BrandLogo size="lg" className="block h-[4.75rem] md:h-24 lg:h-28" />
           </Link>
 
           {/* Desktop Nav */}

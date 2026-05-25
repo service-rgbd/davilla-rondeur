@@ -1,0 +1,54 @@
+# Blueprint Render — API Davilla Rondeur
+# Dashboard : https://dashboard.render.com/ → New → Blueprint → repo GitHub
+#
+# Domaine custom : api.davilla-rondeur.fr
+#   1. Render → Service → Settings → Custom Domains → ajouter api.davilla-rondeur.fr
+#   2. Cloudflare DNS → CNAME api → <votre-service>.onrender.com (proxy activé OK)
+#
+# Webhook Stripe (prod) :
+#   URL : https://api.davilla-rondeur.fr/api/webhooks/stripe
+#   Events : checkout.session.completed, checkout.session.expired
+#   Copier le signing secret (whsec_...) dans STRIPE_WEBHOOK_SECRET sur Render
+
+services:
+  - type: web
+    name: davilla-rondeur-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: FRONTEND_URL
+        value: https://davilla-rondeur.fr
+      - key: EMAIL_FROM
+        value: "Davilla Rondeur <noreply@davilla-rondeur.fr>"
+      - key: R2_BUCKET_NAME
+        value: davillarond
+      - key: DATABASE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_JWT_SECRET
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
