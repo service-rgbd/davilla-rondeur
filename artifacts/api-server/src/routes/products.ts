@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db, productsTable, categoriesTable } from "@workspace/db";
 import {
   ListProductsQueryParams,
@@ -15,6 +15,7 @@ router.get("/products/featured", async (req, res): Promise<void> => {
     .from(productsTable)
     .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
     .where(eq(productsTable.featured, true))
+    .orderBy(desc(productsTable.id))
     .limit(6);
 
   res.json(rows.map((r) => buildProductResponse(r.products, r.categories)));
@@ -37,7 +38,8 @@ router.get("/products", async (req, res): Promise<void> => {
     .select()
     .from(productsTable)
     .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined);
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(productsTable.id));
 
   if (limit != null) query.limit(limit);
 

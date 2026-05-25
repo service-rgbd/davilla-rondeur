@@ -165,8 +165,54 @@ export interface AdminLoginInput {
 }
 
 export interface AdminAuthResponse {
-  token: string;
+  token?: string;
   email: string;
+  requiresTwoFactor?: boolean;
+  challengeToken?: string;
+}
+
+export interface AdminVerifyTwoFactorInput {
+  challengeToken: string;
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  code: string;
+}
+
+export interface AdminTwoFactorStatus {
+  enabled: boolean;
+  configured: boolean;
+}
+
+export interface AdminTwoFactorSetupResponse {
+  secret: string;
+  otpauthUrl: string;
+  qrCodeDataUrl: string;
+}
+
+export interface AdminEnableTwoFactorInput {
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  code: string;
+}
+
+export interface AdminDisableTwoFactorInput {
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  code: string;
+}
+
+export interface AdminChangePasswordInput {
+  currentPassword: string;
+  /** @minLength 8 */
+  newPassword: string;
+  /** @minLength 8 */
+  confirmPassword: string;
 }
 
 export interface AdminCreateProductInput {

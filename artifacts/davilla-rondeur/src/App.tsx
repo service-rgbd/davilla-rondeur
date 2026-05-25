@@ -12,13 +12,6 @@ import Contact from "@/pages/contact";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import OrderSuccess from "@/pages/order-success";
-import AdminLogin from "@/pages/admin/login";
-import AdminDashboard from "@/pages/admin/dashboard/index";
-import AdminOrders from "@/pages/admin/orders/index";
-import AdminContacts from "@/pages/admin/contacts/index";
-import AdminSettings from "@/pages/admin/settings/index";
-import AdminProducts from "@/pages/admin/products/index";
-import AdminProductEdit from "@/pages/admin/products/edit";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -35,13 +28,6 @@ function Router() {
       <Route path="/panier" component={Cart} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/commande/succes" component={OrderSuccess} />
-      <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/orders" component={AdminOrders} />
-      <Route path="/admin/contacts" component={AdminContacts} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/products" component={AdminProducts} />
-      <Route path="/admin/products/:id" component={AdminProductEdit} />
       <Route component={NotFound} />
     </Switch>
   );

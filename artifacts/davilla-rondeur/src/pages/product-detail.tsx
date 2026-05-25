@@ -218,7 +218,7 @@ export default function ProductDetail() {
             <Accordion type="single" collapsible className="w-full border-t border-border">
               <AccordionItem value="description" className="border-border">
                 <AccordionTrigger className="font-sans uppercase tracking-widest text-sm hover:no-underline py-6">Description</AccordionTrigger>
-                <AccordionContent className="font-sans text-muted-foreground leading-relaxed font-light pb-6">
+                <AccordionContent className="font-sans text-muted-foreground leading-relaxed font-light pb-6 whitespace-pre-line">
                   {product.description || "Un produit naturel, formulé avec soin pour accompagner votre bien-être au quotidien."}
                 </AccordionContent>
               </AccordionItem>

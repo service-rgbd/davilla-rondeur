@@ -6,9 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AdminAuthResponse {
-  token?: string;
-  email: string;
-  requiresTwoFactor?: boolean;
-  challengeToken?: string;
+export interface AdminEnableTwoFactorInput {
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  code: string;
 }

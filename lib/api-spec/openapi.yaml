@@ -287,6 +287,190 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/verify-2fa:
+    post:
+      operationId: adminVerifyTwoFactor
+      tags: [admin]
+      summary: Verify admin 2FA code after login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminVerifyTwoFactorInput"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResponse"
+        "401":
+          description: Invalid or expired challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/2fa/status:
+    get:
+      operationId: adminGetTwoFactorStatus
+      tags: [admin]
+      summary: Get admin 2FA status
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTwoFactorStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/2fa/setup:
+    post:
+      operationId: adminSetupTwoFactor
+      tags: [admin]
+      summary: Generate TOTP secret and QR code
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Setup payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTwoFactorSetupResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/2fa/enable:
+    post:
+      operationId: adminEnableTwoFactor
+      tags: [admin]
+      summary: Enable admin 2FA after verifying code
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminEnableTwoFactorInput"
+      responses:
+        "200":
+          description: Enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/2fa/disable:
+    post:
+      operationId: adminDisableTwoFactor
+      tags: [admin]
+      summary: Disable admin 2FA
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminDisableTwoFactorInput"
+      responses:
+        "200":
+          description: Disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/auth/change-password:
+    post:
+      operationId: adminChangePassword
+      tags: [admin]
+      summary: Change admin password
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChangePasswordInput"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/products:
     get:
@@ -884,12 +1068,78 @@ components:
 
     AdminAuthResponse:
       type: object
-      required: [token, email]
+      required: [email]
       properties:
         token:
           type: string
         email:
           type: string
+        requiresTwoFactor:
+          type: boolean
+        challengeToken:
+          type: string
+
+    AdminVerifyTwoFactorInput:
+      type: object
+      required: [challengeToken, code]
+      properties:
+        challengeToken:
+          type: string
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    AdminTwoFactorStatus:
+      type: object
+      required: [enabled, configured]
+      properties:
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+
+    AdminTwoFactorSetupResponse:
+      type: object
+      required: [secret, otpauthUrl, qrCodeDataUrl]
+      properties:
+        secret:
+          type: string
+        otpauthUrl:
+          type: string
+        qrCodeDataUrl:
+          type: string
+
+    AdminEnableTwoFactorInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    AdminDisableTwoFactorInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    AdminChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+          minLength: 8
 
     AdminCreateProductInput:
       type: object

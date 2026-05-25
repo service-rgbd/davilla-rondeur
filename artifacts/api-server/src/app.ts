@@ -10,6 +10,7 @@ function getAllowedOrigins(): string[] {
   const origins = new Set<string>([
     "https://davilla-rondeur.fr",
     "https://www.davilla-rondeur.fr",
+    "https://portail.davilla-rondeur.fr",
     "http://localhost:19957",
     "http://localhost:5173",
     "http://127.0.0.1:19957",

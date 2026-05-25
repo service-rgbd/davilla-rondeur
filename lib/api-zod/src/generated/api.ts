@@ -275,8 +275,104 @@ export const AdminLoginBody = zod.object({
 })
 
 export const AdminLoginResponse = zod.object({
-  "token": zod.string(),
-  "email": zod.string()
+  "token": zod.string().optional(),
+  "email": zod.string(),
+  "requiresTwoFactor": zod.boolean().optional(),
+  "challengeToken": zod.string().optional()
+})
+
+
+/**
+ * @summary Verify admin 2FA code after login
+ */
+export const adminVerifyTwoFactorBodyCodeMin = 6;
+export const adminVerifyTwoFactorBodyCodeMax = 6;
+
+
+
+export const AdminVerifyTwoFactorBody = zod.object({
+  "challengeToken": zod.string(),
+  "code": zod.string().min(adminVerifyTwoFactorBodyCodeMin).max(adminVerifyTwoFactorBodyCodeMax)
+})
+
+export const AdminVerifyTwoFactorResponse = zod.object({
+  "token": zod.string().optional(),
+  "email": zod.string(),
+  "requiresTwoFactor": zod.boolean().optional(),
+  "challengeToken": zod.string().optional()
+})
+
+
+/**
+ * @summary Get admin 2FA status
+ */
+export const AdminGetTwoFactorStatusResponse = zod.object({
+  "enabled": zod.boolean(),
+  "configured": zod.boolean()
+})
+
+
+/**
+ * @summary Generate TOTP secret and QR code
+ */
+export const AdminSetupTwoFactorResponse = zod.object({
+  "secret": zod.string(),
+  "otpauthUrl": zod.string(),
+  "qrCodeDataUrl": zod.string()
+})
+
+
+/**
+ * @summary Enable admin 2FA after verifying code
+ */
+export const adminEnableTwoFactorBodyCodeMin = 6;
+export const adminEnableTwoFactorBodyCodeMax = 6;
+
+
+
+export const AdminEnableTwoFactorBody = zod.object({
+  "code": zod.string().min(adminEnableTwoFactorBodyCodeMin).max(adminEnableTwoFactorBodyCodeMax)
+})
+
+export const AdminEnableTwoFactorResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Disable admin 2FA
+ */
+export const adminDisableTwoFactorBodyCodeMin = 6;
+export const adminDisableTwoFactorBodyCodeMax = 6;
+
+
+
+export const AdminDisableTwoFactorBody = zod.object({
+  "code": zod.string().min(adminDisableTwoFactorBodyCodeMin).max(adminDisableTwoFactorBodyCodeMax)
+})
+
+export const AdminDisableTwoFactorResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Change admin password
+ */
+export const adminChangePasswordBodyNewPasswordMin = 8;
+
+export const adminChangePasswordBodyConfirmPasswordMin = 8;
+
+
+
+export const AdminChangePasswordBody = zod.object({
+  "currentPassword": zod.string(),
+  "newPassword": zod.string().min(adminChangePasswordBodyNewPasswordMin),
+  "confirmPassword": zod.string().min(adminChangePasswordBodyConfirmPasswordMin)
+})
+
+export const AdminChangePasswordResponse = zod.object({
+  "message": zod.string()
 })
 
 

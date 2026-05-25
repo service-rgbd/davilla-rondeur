@@ -7,20 +7,26 @@
  */
 
 export * from './adminAuthResponse';
+export * from './adminChangePasswordInput';
 export * from './adminChartPoint';
 export * from './adminCreateProductInput';
 export * from './adminCustomer';
 export * from './adminCustomerSourcesItem';
 export * from './adminDashboardStats';
 export * from './adminDashboardStatsOrdersByStatus';
+export * from './adminDisableTwoFactorInput';
+export * from './adminEnableTwoFactorInput';
 export * from './adminListOrdersParams';
 export * from './adminListOrdersStatus';
 export * from './adminLoginInput';
 export * from './adminOrderSummary';
 export * from './adminOrderSummaryStatus';
+export * from './adminTwoFactorSetupResponse';
+export * from './adminTwoFactorStatus';
 export * from './adminUpdateOrderInput';
 export * from './adminUpdateOrderInputStatus';
 export * from './adminUpdateProductInput';
+export * from './adminVerifyTwoFactorInput';
 export * from './cart';
 export * from './cartItem';
 export * from './cartItemInput';

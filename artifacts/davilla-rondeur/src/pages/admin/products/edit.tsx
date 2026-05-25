@@ -24,6 +24,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { uploadProductImage } from "@/lib/upload";
+import { adminRoutes } from "@/lib/admin-routes";
 import { ArrowLeft, Upload, X } from "lucide-react";
 import type { AdminCreateProductInput, AdminUpdateProductInput } from "@workspace/api-client-react";
 
@@ -39,7 +40,7 @@ function joinLines(values: string[] | undefined): string {
 }
 
 export default function AdminProductEdit() {
-  const [, params] = useRoute("/admin/products/:id");
+  const [, params] = useRoute(`${adminRoutes.products}/:id`);
   const idParam = params?.id;
   const isNew = idParam === "new";
   const productId = isNew ? undefined : Number.parseInt(idParam ?? "", 10);
@@ -156,7 +157,7 @@ export default function AdminProductEdit() {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getAdminListProductsQueryKey() });
             toast({ title: "Produit créé" });
-            setLocation("/admin/products");
+            setLocation(adminRoutes.products);
           },
           onError: (err) => showError(err),
         },
@@ -194,14 +195,14 @@ export default function AdminProductEdit() {
   return (
     <AdminLayout>
       <Link
-        href="/admin/products"
+        href={adminRoutes.products}
         className="inline-flex items-center gap-2 font-sans text-sm text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="w-4 h-4" />
         Retour à la liste
       </Link>
 
-      <h1 className="text-3xl font-sans font-bold mb-8">{isNew ? "Nouveau produit" : "Modifier le produit"}</h1>
+      <h1 className="text-2xl sm:text-3xl font-sans font-bold mb-6 sm:mb-8">{isNew ? "Nouveau produit" : "Modifier le produit"}</h1>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-6xl">
         <div className="space-y-5">
@@ -217,7 +218,7 @@ export default function AdminProductEdit() {
             <Label className="uppercase tracking-widest text-xs">Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="rounded-none min-h-[140px]" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="uppercase tracking-widest text-xs">Prix (€)</Label>
               <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required className="rounded-none h-11" />
@@ -246,7 +247,7 @@ export default function AdminProductEdit() {
             <Label className="uppercase tracking-widest text-xs">Étiquette (Best-seller, etc.)</Label>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} className="rounded-none h-11" />
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
             <div className="flex items-center gap-3">
               <Switch checked={inStock} onCheckedChange={setInStock} id="in-stock" />
               <Label htmlFor="in-stock">En stock</Label>

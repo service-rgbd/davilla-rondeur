@@ -6,9 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AdminAuthResponse {
-  token?: string;
-  email: string;
-  requiresTwoFactor?: boolean;
-  challengeToken?: string;
+export interface AdminTwoFactorSetupResponse {
+  secret: string;
+  otpauthUrl: string;
+  qrCodeDataUrl: string;
 }

@@ -101,8 +101,8 @@ function NewsletterTab() {
   }
 
   return (
-    <div className="border border-border overflow-x-auto">
-      <table className="w-full font-sans text-sm">
+    <div className="border border-border overflow-x-auto md:overflow-visible">
+      <table className="w-full font-sans text-sm min-w-[320px]">
         <thead className="bg-muted/40 border-b border-border">
           <tr>
             <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Email</th>
@@ -125,24 +125,24 @@ function NewsletterTab() {
 export default function AdminContacts() {
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-sans font-bold tracking-tight">Contacts</h1>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Contacts</h1>
         <p className="font-sans text-sm text-muted-foreground mt-1">
           Clients ayant commandé et abonnés à la newsletter
         </p>
       </div>
 
       <Tabs defaultValue="customers">
-        <TabsList className="rounded-none h-auto bg-muted/40 p-1 mb-6">
+        <TabsList className="rounded-none h-auto flex w-full overflow-x-auto flex-nowrap bg-muted/40 p-1 mb-6 scrollbar-thin">
           <TabsTrigger
             value="customers"
-            className="rounded-none font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
+            className="rounded-none shrink-0 font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
           >
             Clients
           </TabsTrigger>
           <TabsTrigger
             value="newsletter"
-            className="rounded-none font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
+            className="rounded-none shrink-0 font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
           >
             Newsletter
           </TabsTrigger>

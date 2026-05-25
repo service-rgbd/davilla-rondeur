@@ -21,14 +21,20 @@ import type {
 
 import type {
   AdminAuthResponse,
+  AdminChangePasswordInput,
   AdminCreateProductInput,
   AdminCustomer,
   AdminDashboardStats,
+  AdminDisableTwoFactorInput,
+  AdminEnableTwoFactorInput,
   AdminListOrdersParams,
   AdminLoginInput,
   AdminOrderSummary,
+  AdminTwoFactorSetupResponse,
+  AdminTwoFactorStatus,
   AdminUpdateOrderInput,
   AdminUpdateProductInput,
+  AdminVerifyTwoFactorInput,
   Cart,
   CartItemInput,
   Category,
@@ -966,6 +972,437 @@ export const useAdminLogin = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminLoginMutationOptions(options));
+    }
+
+export const getAdminVerifyTwoFactorUrl = () => {
+
+
+
+
+  return `/api/admin/auth/verify-2fa`
+}
+
+/**
+ * @summary Verify admin 2FA code after login
+ */
+export const adminVerifyTwoFactor = async (adminVerifyTwoFactorInput: AdminVerifyTwoFactorInput, options?: RequestInit): Promise<AdminAuthResponse> => {
+
+  return customFetch<AdminAuthResponse>(getAdminVerifyTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminVerifyTwoFactorInput,)
+  }
+);}
+
+
+
+
+export const getAdminVerifyTwoFactorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminVerifyTwoFactor>>, TError,{data: BodyType<AdminVerifyTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminVerifyTwoFactor>>, TError,{data: BodyType<AdminVerifyTwoFactorInput>}, TContext> => {
+
+const mutationKey = ['adminVerifyTwoFactor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminVerifyTwoFactor>>, {data: BodyType<AdminVerifyTwoFactorInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminVerifyTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminVerifyTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof adminVerifyTwoFactor>>>
+    export type AdminVerifyTwoFactorMutationBody = BodyType<AdminVerifyTwoFactorInput>
+    export type AdminVerifyTwoFactorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Verify admin 2FA code after login
+ */
+export const useAdminVerifyTwoFactor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminVerifyTwoFactor>>, TError,{data: BodyType<AdminVerifyTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminVerifyTwoFactor>>,
+        TError,
+        {data: BodyType<AdminVerifyTwoFactorInput>},
+        TContext
+      > => {
+      return useMutation(getAdminVerifyTwoFactorMutationOptions(options));
+    }
+
+export const getAdminGetTwoFactorStatusUrl = () => {
+
+
+
+
+  return `/api/admin/auth/2fa/status`
+}
+
+/**
+ * @summary Get admin 2FA status
+ */
+export const adminGetTwoFactorStatus = async ( options?: RequestInit): Promise<AdminTwoFactorStatus> => {
+
+  return customFetch<AdminTwoFactorStatus>(getAdminGetTwoFactorStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetTwoFactorStatusQueryKey = () => {
+    return [
+    `/api/admin/auth/2fa/status`
+    ] as const;
+    }
+
+
+export const getAdminGetTwoFactorStatusQueryOptions = <TData = Awaited<ReturnType<typeof adminGetTwoFactorStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetTwoFactorStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetTwoFactorStatus>>> = ({ signal }) => adminGetTwoFactorStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetTwoFactorStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetTwoFactorStatusQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetTwoFactorStatus>>>
+export type AdminGetTwoFactorStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get admin 2FA status
+ */
+
+export function useAdminGetTwoFactorStatus<TData = Awaited<ReturnType<typeof adminGetTwoFactorStatus>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetTwoFactorStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminSetupTwoFactorUrl = () => {
+
+
+
+
+  return `/api/admin/auth/2fa/setup`
+}
+
+/**
+ * @summary Generate TOTP secret and QR code
+ */
+export const adminSetupTwoFactor = async ( options?: RequestInit): Promise<AdminTwoFactorSetupResponse> => {
+
+  return customFetch<AdminTwoFactorSetupResponse>(getAdminSetupTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminSetupTwoFactorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetupTwoFactor>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetupTwoFactor>>, TError,void, TContext> => {
+
+const mutationKey = ['adminSetupTwoFactor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetupTwoFactor>>, void> = () => {
+
+
+          return  adminSetupTwoFactor(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetupTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetupTwoFactor>>>
+
+    export type AdminSetupTwoFactorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate TOTP secret and QR code
+ */
+export const useAdminSetupTwoFactor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetupTwoFactor>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetupTwoFactor>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminSetupTwoFactorMutationOptions(options));
+    }
+
+export const getAdminEnableTwoFactorUrl = () => {
+
+
+
+
+  return `/api/admin/auth/2fa/enable`
+}
+
+/**
+ * @summary Enable admin 2FA after verifying code
+ */
+export const adminEnableTwoFactor = async (adminEnableTwoFactorInput: AdminEnableTwoFactorInput, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getAdminEnableTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminEnableTwoFactorInput,)
+  }
+);}
+
+
+
+
+export const getAdminEnableTwoFactorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminEnableTwoFactor>>, TError,{data: BodyType<AdminEnableTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminEnableTwoFactor>>, TError,{data: BodyType<AdminEnableTwoFactorInput>}, TContext> => {
+
+const mutationKey = ['adminEnableTwoFactor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminEnableTwoFactor>>, {data: BodyType<AdminEnableTwoFactorInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminEnableTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminEnableTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof adminEnableTwoFactor>>>
+    export type AdminEnableTwoFactorMutationBody = BodyType<AdminEnableTwoFactorInput>
+    export type AdminEnableTwoFactorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Enable admin 2FA after verifying code
+ */
+export const useAdminEnableTwoFactor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminEnableTwoFactor>>, TError,{data: BodyType<AdminEnableTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminEnableTwoFactor>>,
+        TError,
+        {data: BodyType<AdminEnableTwoFactorInput>},
+        TContext
+      > => {
+      return useMutation(getAdminEnableTwoFactorMutationOptions(options));
+    }
+
+export const getAdminDisableTwoFactorUrl = () => {
+
+
+
+
+  return `/api/admin/auth/2fa/disable`
+}
+
+/**
+ * @summary Disable admin 2FA
+ */
+export const adminDisableTwoFactor = async (adminDisableTwoFactorInput: AdminDisableTwoFactorInput, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getAdminDisableTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminDisableTwoFactorInput,)
+  }
+);}
+
+
+
+
+export const getAdminDisableTwoFactorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDisableTwoFactor>>, TError,{data: BodyType<AdminDisableTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminDisableTwoFactor>>, TError,{data: BodyType<AdminDisableTwoFactorInput>}, TContext> => {
+
+const mutationKey = ['adminDisableTwoFactor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminDisableTwoFactor>>, {data: BodyType<AdminDisableTwoFactorInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminDisableTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminDisableTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof adminDisableTwoFactor>>>
+    export type AdminDisableTwoFactorMutationBody = BodyType<AdminDisableTwoFactorInput>
+    export type AdminDisableTwoFactorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Disable admin 2FA
+ */
+export const useAdminDisableTwoFactor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDisableTwoFactor>>, TError,{data: BodyType<AdminDisableTwoFactorInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminDisableTwoFactor>>,
+        TError,
+        {data: BodyType<AdminDisableTwoFactorInput>},
+        TContext
+      > => {
+      return useMutation(getAdminDisableTwoFactorMutationOptions(options));
+    }
+
+export const getAdminChangePasswordUrl = () => {
+
+
+
+
+  return `/api/admin/auth/change-password`
+}
+
+/**
+ * @summary Change admin password
+ */
+export const adminChangePassword = async (adminChangePasswordInput: AdminChangePasswordInput, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getAdminChangePasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminChangePasswordInput,)
+  }
+);}
+
+
+
+
+export const getAdminChangePasswordMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminChangePassword>>, TError,{data: BodyType<AdminChangePasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminChangePassword>>, TError,{data: BodyType<AdminChangePasswordInput>}, TContext> => {
+
+const mutationKey = ['adminChangePassword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminChangePassword>>, {data: BodyType<AdminChangePasswordInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminChangePassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof adminChangePassword>>>
+    export type AdminChangePasswordMutationBody = BodyType<AdminChangePasswordInput>
+    export type AdminChangePasswordMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Change admin password
+ */
+export const useAdminChangePassword = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminChangePassword>>, TError,{data: BodyType<AdminChangePasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminChangePassword>>,
+        TError,
+        {data: BodyType<AdminChangePasswordInput>},
+        TContext
+      > => {
+      return useMutation(getAdminChangePasswordMutationOptions(options));
     }
 
 export const getAdminListProductsUrl = () => {

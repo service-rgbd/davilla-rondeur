@@ -3,6 +3,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminGetDashboardStats } from "@workspace/api-client-react";
+import { adminRoutes } from "@/lib/admin-routes";
 import { Euro, ShoppingBag, Users, Clock } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -65,46 +66,54 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-sans font-bold tracking-tight">Tableau de bord</h1>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Tableau de bord</h1>
         <p className="font-sans text-sm text-muted-foreground mt-1">
           Vue d&apos;ensemble de l&apos;activité Davilla Rondeur
         </p>
       </div>
 
       {isLoading || !data ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 animate-pulse bg-muted border border-border" />
+            <div key={i} className="min-w-[240px] snap-start h-32 animate-pulse bg-muted border border-border shrink-0" />
           ))}
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
-            <StatCard
-              title="Chiffre d'affaires"
-              value={formatEuro(data.totalRevenue)}
-              hint="Commandes payées, expédiées ou livrées"
-              icon={Euro}
-            />
-            <StatCard
-              title="En cours"
-              value={String(inProgress)}
-              hint="En attente de paiement ou à préparer"
-              icon={Clock}
-            />
-            <StatCard
-              title="Commandes terminées"
-              value={String(completed)}
-              hint="Expédiées et livrées"
-              icon={ShoppingBag}
-            />
-            <StatCard
-              title="Abonnés newsletter"
-              value={String(data.newsletterSubscribers)}
-              hint="Contacts marketing"
-              icon={Users}
-            />
+          <div className="flex gap-4 overflow-x-auto pb-2 mb-8 snap-x snap-mandatory scrollbar-thin">
+            <div className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
+              <StatCard
+                title="Chiffre d'affaires"
+                value={formatEuro(data.totalRevenue)}
+                hint="Commandes payées, expédiées ou livrées"
+                icon={Euro}
+              />
+            </div>
+            <div className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
+              <StatCard
+                title="En cours"
+                value={String(inProgress)}
+                hint="En attente de paiement ou à préparer"
+                icon={Clock}
+              />
+            </div>
+            <div className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
+              <StatCard
+                title="Commandes terminées"
+                value={String(completed)}
+                hint="Expédiées et livrées"
+                icon={ShoppingBag}
+              />
+            </div>
+            <div className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
+              <StatCard
+                title="Abonnés newsletter"
+                value={String(data.newsletterSubscribers)}
+                hint="Contacts marketing"
+                icon={Users}
+              />
+            </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3 mb-8">
@@ -114,7 +123,7 @@ export default function AdminDashboard() {
                   Revenus — 14 derniers jours
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-72">
+              <CardContent className="h-64 sm:h-72">
                 {data.revenueByDay.length === 0 ? (
                   <div className="h-full flex items-center justify-center font-sans text-sm text-muted-foreground">
                     Aucune vente enregistrée pour le moment
@@ -154,7 +163,7 @@ export default function AdminDashboard() {
                   Répartition des commandes
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-72">
+              <CardContent className="h-64 sm:h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -196,14 +205,30 @@ export default function AdminDashboard() {
                 Dernières commandes
               </CardTitle>
               <Link
-                href="/admin/orders"
+                href={adminRoutes.orders}
                 className="font-sans text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
               >
                 Voir tout →
               </Link>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full font-sans text-sm">
+            <CardContent>
+              <div className="md:hidden space-y-3">
+                {data.recentOrders.map((order) => (
+                  <div key={order.id} className="border border-border p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-sans font-semibold">#{order.id}</p>
+                      <OrderStatusBadge status={order.status} />
+                    </div>
+                    <p className="font-sans text-sm break-all">{order.email}</p>
+                    <div className="flex justify-between font-sans text-sm text-muted-foreground">
+                      <span>{formatEuro(order.total)}</span>
+                      <span>{formatDate(order.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
+              <table className="w-full font-sans text-sm min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">
@@ -237,6 +262,7 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </>

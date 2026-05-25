@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import type { Request, Response, NextFunction } from "express";
+import { changeAdminPassword, verifyAdminPassword } from "./admin-password";
 
 const TOKEN_TTL = "7d";
 
@@ -16,22 +17,21 @@ function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return timingSafeEqual(bufA, bufB);
-}
-
 export function isAdminAuthConfigured(): boolean {
   return Boolean(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && process.env.ADMIN_JWT_SECRET);
 }
 
-export function verifyAdminCredentials(email: string, password: string): boolean {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminEmail || !adminPassword) return false;
-  return safeEqual(email.trim().toLowerCase(), adminEmail.trim().toLowerCase()) && safeEqual(password, adminPassword);
+export async function verifyAdminCredentials(email: string, password: string): Promise<boolean> {
+  if (!isAdminAuthConfigured()) return false;
+  return verifyAdminPassword(email, password);
+}
+
+export async function updateAdminPassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return changeAdminPassword(email, currentPassword, newPassword);
 }
 
 export async function signAdminToken(email: string): Promise<string> {

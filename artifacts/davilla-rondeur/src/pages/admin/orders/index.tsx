@@ -92,7 +92,7 @@ function OrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-none max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="rounded-none w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-sans">
             Commande {orderId ? `#${orderId}` : ""}
@@ -103,10 +103,10 @@ function OrderDetailDialog({
           <div className="h-40 animate-pulse bg-muted" />
         ) : (
           <div className="space-y-6 font-sans text-sm">
-            <div className="flex flex-wrap items-center gap-4 justify-between">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 sm:justify-between">
               <OrderStatusBadge status={order.status} />
               <Select value={order.status} onValueChange={handleStatusChange} disabled={updateMutation.isPending}>
-                <SelectTrigger className="w-48 rounded-none h-10">
+                <SelectTrigger className="w-full sm:w-48 rounded-none h-10">
                   <SelectValue placeholder="Changer le statut" />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,7 +195,35 @@ function OrdersTable({ status }: { status: string }) {
 
   return (
     <>
-      <div className="border border-border overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {orders.map((order) => (
+          <div key={order.id} className="border border-border p-4 space-y-3 bg-background">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-sans font-semibold">#{order.id}</p>
+                <p className="font-sans text-sm break-all">{order.email}</p>
+              </div>
+              <OrderStatusBadge status={order.status} />
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm text-muted-foreground">
+              <span>{order.itemCount} article{order.itemCount > 1 ? "s" : ""}</span>
+              <span className="font-medium text-foreground">{formatEuro(order.total)}</span>
+              <span>{formatDate(order.createdAt)}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-none w-full"
+              onClick={() => setSelectedId(order.id)}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Voir le détail
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block border border-border overflow-x-auto">
         <table className="w-full font-sans text-sm">
           <thead className="bg-muted/40 border-b border-border">
             <tr>
@@ -259,20 +287,20 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-sans font-bold tracking-tight">Commandes</h1>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Commandes</h1>
         <p className="font-sans text-sm text-muted-foreground mt-1">
           Suivez les commandes en attente, payées, expédiées et livrées
         </p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="rounded-none h-auto flex-wrap gap-1 bg-muted/40 p-1 mb-6">
+        <TabsList className="rounded-none h-auto flex w-full overflow-x-auto flex-nowrap gap-1 bg-muted/40 p-1 mb-6 scrollbar-thin">
           {FILTERS.map((filter) => (
             <TabsTrigger
               key={filter.value}
               value={filter.value}
-              className="rounded-none font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
+              className="rounded-none shrink-0 font-sans text-xs uppercase tracking-widest data-[state=active]:bg-background"
             >
               {filter.label}
             </TabsTrigger>
