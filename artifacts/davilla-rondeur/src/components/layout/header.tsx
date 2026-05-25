@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 
+const SCROLL_HIDE_OFFSET = 80;
+const FOOTER_ZONE_PX = 160;
+
 export function Header() {
   const [location, setLocation] = useLocation();
   const sessionId = getSessionId();
@@ -15,24 +18,39 @@ export function Header() {
   const [headerVisible, setHeaderVisible] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
+  const ticking = useRef(false);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateHeader = () => {
       const currentY = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight;
+      const nearBottom = currentY + window.innerHeight >= docHeight - FOOTER_ZONE_PX;
+
       setIsScrolled(currentY > 20);
 
       if (currentY <= 0) {
         setHeaderVisible(true);
-      } else if (currentY > lastScrollY.current && currentY > 72) {
+      } else if (nearBottom) {
         setHeaderVisible(false);
-      } else if (currentY < lastScrollY.current) {
+      } else if (currentY > lastScrollY.current + 8 && currentY > SCROLL_HIDE_OFFSET) {
+        setHeaderVisible(false);
+      } else if (currentY < lastScrollY.current - 8) {
         setHeaderVisible(true);
       }
 
       lastScrollY.current = currentY;
+      ticking.current = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking.current) {
+        ticking.current = true;
+        window.requestAnimationFrame(updateHeader);
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    updateHeader();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -55,24 +73,22 @@ export function Header() {
     <>
       <div
         className={cn(
-          "sticky top-0 z-50 w-full overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-in-out will-change-transform",
-          headerVisible
-            ? "max-h-48 opacity-100 translate-y-0"
-            : "max-h-0 opacity-0 -translate-y-2 pointer-events-none",
+          "fixed top-0 inset-x-0 z-50 transition-transform duration-300 ease-in-out",
+          headerVisible ? "translate-y-0" : "-translate-y-full",
         )}
       >
-        <div className="bg-primary text-primary-foreground text-xs py-1 px-4 flex justify-between items-center hidden md:flex font-sans tracking-wide">
+        <div className="bg-primary text-primary-foreground text-xs py-1 px-4 justify-between items-center hidden md:flex font-sans tracking-wide">
           <span>Livraison discrète & sécurisée</span>
           <span>Paiement 100% sécurisé</span>
           <span>Service clientèle confidentiel</span>
         </div>
         <header
           className={cn(
-            "w-full border-b border-transparent",
-            isScrolled ? "bg-background/95 backdrop-blur-md border-border py-1.5 shadow-sm" : "bg-background py-2",
+            "w-full border-b bg-background",
+            isScrolled ? "border-border shadow-sm backdrop-blur-md bg-background/95" : "border-transparent",
           )}
         >
-          <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 min-h-0">
+          <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between gap-3 py-2 md:py-1.5">
             <button
               className="md:hidden p-1.5 -ml-1.5 text-foreground shrink-0"
               onClick={() => setMobileMenuOpen(true)}
@@ -120,6 +136,8 @@ export function Header() {
           </div>
         </header>
       </div>
+
+      <div className="h-[5.5rem] md:h-[8.25rem] shrink-0" aria-hidden />
 
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-background flex flex-col animate-in slide-in-from-left">
