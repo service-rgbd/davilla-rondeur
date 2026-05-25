@@ -70,3 +70,27 @@ export async function createPresignedUpload(input: {
     key,
   };
 }
+
+export async function uploadObjectToR2(input: {
+  buffer: Buffer;
+  filename: string;
+  contentType: string;
+}): Promise<{ publicUrl: string; key: string }> {
+  const { bucketName, publicUrl } = getR2Config();
+  const safeName = sanitizeFilename(input.filename) || "image.jpg";
+  const key = `products/${Date.now()}-${safeName}`;
+
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: input.buffer,
+      ContentType: input.contentType,
+    }),
+  );
+
+  return {
+    publicUrl: `${publicUrl}/${key}`,
+    key,
+  };
+}

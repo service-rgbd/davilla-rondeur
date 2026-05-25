@@ -1,0 +1,21 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://portail.davilla-rondeur.fr",
+          "https://davilla-rondeur.fr",
+          "https://www.davilla-rondeur.fr",
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+          "http://localhost:19957",
+          "http://127.0.0.1:19957"
+        ],
+        "methods": ["GET", "PUT", "HEAD"],
+        "headers": ["*"]
+      },
+      "expose_headers": ["ETag"],
+      "max_age_seconds": 3600
+    }
+  ]
+}

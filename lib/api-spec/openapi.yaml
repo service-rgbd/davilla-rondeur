@@ -606,6 +606,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/uploads:
+    post:
+      operationId: adminUploadImage
+      tags: [admin]
+      summary: Upload product image to R2 via API (no browser CORS to bucket)
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Uploaded file URLs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadImageResponse"
+        "400":
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/uploads/presign:
     post:
       operationId: adminPresignUpload
@@ -1221,6 +1259,16 @@ components:
         filename:
           type: string
         contentType:
+          type: string
+
+    UploadImageResponse:
+      type: object
+      required: [publicUrl, key]
+      properties:
+        publicUrl:
+          type: string
+          description: URL publique via R2_PUBLIC_URL (ex. media.davilla-rondeur.fr)
+        key:
           type: string
 
     PresignUploadResponse:
