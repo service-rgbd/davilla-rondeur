@@ -46,10 +46,34 @@ router.get("/admin/products/:id", async (req, res): Promise<void> => {
   res.json(buildProductResponse(row.products, row.categories));
 });
 
+function formatValidationError(error: { issues: { path: (string | number)[]; message: string }[] }): string {
+  const labels: Record<string, string> = {
+    name: "Nom",
+    price: "Prix",
+    categoryId: "Catégorie",
+    originalPrice: "Prix barré",
+    slug: "Slug",
+    imageUrl: "Image",
+  };
+
+  return error.issues
+    .map((issue) => {
+      const field = String(issue.path[0] ?? "");
+      const label = labels[field] ?? field;
+      if (issue.message.includes("Expected number") || issue.message.includes("invalid_type")) {
+        if (field === "price") return "Le prix est invalide ou manquant";
+        if (field === "categoryId") return "Choisissez une catégorie";
+        if (field === "originalPrice") return "Le prix barré est invalide";
+      }
+      return `${label} : ${issue.message}`;
+    })
+    .join(". ");
+}
+
 router.post("/admin/products", async (req, res): Promise<void> => {
   const parsed = AdminCreateProductBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: formatValidationError(parsed.error) });
     return;
   }
 
@@ -107,7 +131,7 @@ router.patch("/admin/products/:id", async (req, res): Promise<void> => {
 
   const parsed = AdminUpdateProductBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: formatValidationError(parsed.error) });
     return;
   }
 

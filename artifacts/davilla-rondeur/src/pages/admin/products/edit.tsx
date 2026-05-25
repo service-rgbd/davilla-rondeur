@@ -40,6 +40,29 @@ function joinLines(values: string[] | undefined): string {
   return values?.join("\n") ?? "";
 }
 
+function parseDecimal(value: string): number | null {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+  const n = Number.parseFloat(normalized);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function validateProductForm(input: {
+  name: string;
+  price: string;
+  categoryId: string;
+  originalPrice: string;
+}): string | null {
+  if (!input.name.trim()) return "Le nom du produit est obligatoire";
+  if (parseDecimal(input.price) == null) return "Indiquez un prix valide (ex. 24.90)";
+  const catId = Number.parseInt(input.categoryId, 10);
+  if (!Number.isFinite(catId) || catId <= 0) return "Choisissez une catégorie";
+  if (input.originalPrice.trim() && parseDecimal(input.originalPrice) == null) {
+    return "Le prix barré est invalide";
+  }
+  return null;
+}
+
 export default function AdminProductEdit() {
   const [, params] = useRoute(`${adminRoutes.products}/:id`);
   const idParam = params?.id;
@@ -75,6 +98,12 @@ export default function AdminProductEdit() {
   const [imagePreview, setImagePreview] = useState("");
   const [gallery, setGallery] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (isNew && categories?.length && !categoryId) {
+      setCategoryId(String(categories[0].id));
+    }
+  }, [isNew, categories, categoryId]);
 
   useEffect(() => {
     if (existing) {
@@ -133,11 +162,11 @@ export default function AdminProductEdit() {
   };
 
   const buildCreatePayload = (): AdminCreateProductInput => ({
-    name,
+    name: name.trim(),
     slug: slug.trim() || null,
-    description: description || null,
-    price: Number.parseFloat(price),
-    originalPrice: originalPrice ? Number.parseFloat(originalPrice) : null,
+    description: description.trim() || null,
+    price: parseDecimal(price) as number,
+    originalPrice: parseDecimal(originalPrice),
     categoryId: Number.parseInt(categoryId, 10),
     label: label || null,
     inStock,
@@ -149,11 +178,11 @@ export default function AdminProductEdit() {
   });
 
   const buildUpdatePayload = (): AdminUpdateProductInput => ({
-    name,
+    name: name.trim(),
     slug: slug.trim() || undefined,
-    description: description || null,
-    price: Number.parseFloat(price),
-    originalPrice: originalPrice ? Number.parseFloat(originalPrice) : null,
+    description: description.trim() || null,
+    price: parseDecimal(price) as number,
+    originalPrice: parseDecimal(originalPrice),
     categoryId: Number.parseInt(categoryId, 10),
     label: label || null,
     inStock,
@@ -166,6 +195,12 @@ export default function AdminProductEdit() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationError = validateProductForm({ name, price, categoryId, originalPrice });
+    if (validationError) {
+      toast({ title: "Formulaire incomplet", description: validationError, variant: "destructive" });
+      return;
+    }
 
     if (isNew) {
       createMutation.mutate(
@@ -238,7 +273,15 @@ export default function AdminProductEdit() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="uppercase tracking-widest text-xs">Prix (€)</Label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required className="rounded-none h-11" />
+              <Input
+              type="text"
+              inputMode="decimal"
+              placeholder="ex. 24.90"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              className="rounded-none h-11"
+            />
             </div>
             <div className="space-y-2">
               <Label className="uppercase tracking-widest text-xs">Prix barré (€)</Label>
@@ -247,9 +290,9 @@ export default function AdminProductEdit() {
           </div>
           <div className="space-y-2">
             <Label className="uppercase tracking-widest text-xs">Catégorie</Label>
-            <Select value={categoryId} onValueChange={setCategoryId} required>
+            <Select value={categoryId || undefined} onValueChange={setCategoryId} required>
               <SelectTrigger className="rounded-none h-11">
-                <SelectValue placeholder="Choisir une catégorie" />
+                <SelectValue placeholder="Choisir une catégorie *" />
               </SelectTrigger>
               <SelectContent>
                 {categories?.map((cat) => (
