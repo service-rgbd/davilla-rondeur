@@ -419,6 +419,160 @@ export const AdminPresignUploadResponse = zod.object({
 
 
 /**
+ * @summary Dashboard KPIs and chart data
+ */
+export const AdminGetDashboardStatsResponse = zod.object({
+  "totalRevenue": zod.number(),
+  "ordersByStatus": zod.record(zod.string(), zod.number()),
+  "newsletterSubscribers": zod.number(),
+  "revenueByDay": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+})),
+  "recentOrders": zod.array(zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
+  "total": zod.number(),
+  "itemCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullish(),
+  "shippingCity": zod.string().nullish(),
+  "shippingCountry": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary List orders for admin
+ */
+export const AdminListOrdersQueryParams = zod.object({
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'all']).optional()
+})
+
+export const AdminListOrdersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
+  "total": zod.number(),
+  "itemCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullish(),
+  "shippingCity": zod.string().nullish(),
+  "shippingCountry": zod.string().nullish()
+})
+export const AdminListOrdersResponse = zod.array(AdminListOrdersResponseItem)
+
+
+/**
+ * @summary Get order detail
+ */
+export const AdminGetOrderParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminGetOrderResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "productImageUrl": zod.string().nullish(),
+  "price": zod.number(),
+  "quantity": zod.number(),
+  "size": zod.string().nullish(),
+  "color": zod.string().nullish()
+})),
+  "subtotal": zod.number(),
+  "shippingAmount": zod.number(),
+  "total": zod.number(),
+  "shippingAddress": zod.union([zod.object({
+  "name": zod.string().nullish(),
+  "line1": zod.string().nullish(),
+  "line2": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "country": zod.string().nullish()
+}),zod.null()]).optional(),
+  "stripeSessionId": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update order status
+ */
+export const AdminUpdateOrderParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminUpdateOrderBody = zod.object({
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled'])
+})
+
+export const AdminUpdateOrderResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "productId": zod.number(),
+  "productName": zod.string(),
+  "productImageUrl": zod.string().nullish(),
+  "price": zod.number(),
+  "quantity": zod.number(),
+  "size": zod.string().nullish(),
+  "color": zod.string().nullish()
+})),
+  "subtotal": zod.number(),
+  "shippingAmount": zod.number(),
+  "total": zod.number(),
+  "shippingAddress": zod.union([zod.object({
+  "name": zod.string().nullish(),
+  "line1": zod.string().nullish(),
+  "line2": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "postalCode": zod.string().nullish(),
+  "country": zod.string().nullish()
+}),zod.null()]).optional(),
+  "stripeSessionId": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary List newsletter subscribers
+ */
+export const AdminListNewsletterSubscribersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "subscribedAt": zod.coerce.date()
+})
+export const AdminListNewsletterSubscribersResponse = zod.array(AdminListNewsletterSubscribersResponseItem)
+
+
+/**
+ * @summary List customer contacts from orders
+ */
+export const AdminListCustomersResponseItem = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "orderCount": zod.number(),
+  "totalSpent": zod.number(),
+  "lastOrderAt": zod.coerce.date(),
+  "sources": zod.array(zod.enum(['order', 'newsletter']))
+})
+export const AdminListCustomersResponse = zod.array(AdminListCustomersResponseItem)
+
+
+/**
  * @summary Subscribe to newsletter
  */
 export const SubscribeNewsletterBody = zod.object({

@@ -449,6 +449,160 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/dashboard/stats:
+    get:
+      operationId: adminGetDashboardStats
+      tags: [admin]
+      summary: Dashboard KPIs and chart data
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/orders:
+    get:
+      operationId: adminListOrders
+      tags: [admin]
+      summary: List orders for admin
+      security:
+        - adminBearer: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, paid, shipped, delivered, cancelled, all]
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminOrderSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/orders/{id}:
+    get:
+      operationId: adminGetOrder
+      tags: [admin]
+      summary: Get order detail
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: adminUpdateOrder
+      tags: [admin]
+      summary: Update order status
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateOrderInput"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/newsletter/subscribers:
+    get:
+      operationId: adminListNewsletterSubscribers
+      tags: [admin]
+      summary: List newsletter subscribers
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Subscriber list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsletterSubscriber"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/customers:
+    get:
+      operationId: adminListCustomers
+      tags: [admin]
+      summary: List customer contacts from orders
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Customer contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCustomer"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /newsletter:
     post:
       operationId: subscribeNewsletter
@@ -829,3 +983,111 @@ components:
           type: string
         key:
           type: string
+
+    AdminDashboardStats:
+      type: object
+      required:
+        - totalRevenue
+        - ordersByStatus
+        - newsletterSubscribers
+        - revenueByDay
+        - recentOrders
+      properties:
+        totalRevenue:
+          type: number
+        ordersByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        newsletterSubscribers:
+          type: integer
+        revenueByDay:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminChartPoint"
+        recentOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminOrderSummary"
+
+    AdminChartPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          type: number
+
+    AdminOrderSummary:
+      type: object
+      required: [id, email, status, total, itemCount, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered, cancelled]
+        total:
+          type: number
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: ["string", "null"]
+          format: date-time
+        shippingCity:
+          type: ["string", "null"]
+        shippingCountry:
+          type: ["string", "null"]
+
+    AdminUpdateOrderInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered, cancelled]
+
+    NewsletterSubscriber:
+      type: object
+      required: [id, email, subscribedAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        subscribedAt:
+          type: string
+          format: date-time
+
+    AdminCustomer:
+      type: object
+      required: [email, orderCount, totalSpent, lastOrderAt, sources]
+      properties:
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        orderCount:
+          type: integer
+        totalSpent:
+          type: number
+        lastOrderAt:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            type: string
+            enum: [order, newsletter]

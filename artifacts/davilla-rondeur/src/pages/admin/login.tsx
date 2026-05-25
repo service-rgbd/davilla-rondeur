@@ -13,7 +13,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     if (isAdminLoggedIn()) {
-      setLocation("/admin/products");
+      setLocation("/admin");
     }
   }, [setLocation]);
 
@@ -26,7 +26,7 @@ export default function AdminLogin() {
       {
         onSuccess: (data) => {
           setAdminSession(data.token, data.email);
-          setLocation("/admin/products");
+          setLocation("/admin");
         },
       },
     );

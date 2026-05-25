@@ -221,6 +221,92 @@ export interface PresignUploadResponse {
   key: string;
 }
 
+export type AdminDashboardStatsOrdersByStatus = {[key: string]: number};
+
+export interface AdminChartPoint {
+  label: string;
+  value: number;
+}
+
+export type AdminOrderSummaryStatus = typeof AdminOrderSummaryStatus[keyof typeof AdminOrderSummaryStatus];
+
+
+export const AdminOrderSummaryStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminOrderSummary {
+  id: number;
+  email: string;
+  status: AdminOrderSummaryStatus;
+  total: number;
+  itemCount: number;
+  createdAt: string;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  shippingCity?: string | null;
+  /** @nullable */
+  shippingCountry?: string | null;
+}
+
+export interface AdminDashboardStats {
+  totalRevenue: number;
+  ordersByStatus: AdminDashboardStatsOrdersByStatus;
+  newsletterSubscribers: number;
+  revenueByDay: AdminChartPoint[];
+  recentOrders: AdminOrderSummary[];
+}
+
+export type AdminUpdateOrderInputStatus = typeof AdminUpdateOrderInputStatus[keyof typeof AdminUpdateOrderInputStatus];
+
+
+export const AdminUpdateOrderInputStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminUpdateOrderInput {
+  status: AdminUpdateOrderInputStatus;
+}
+
+export interface NewsletterSubscriber {
+  id: number;
+  email: string;
+  subscribedAt: string;
+}
+
+export type AdminCustomerSourcesItem = typeof AdminCustomerSourcesItem[keyof typeof AdminCustomerSourcesItem];
+
+
+export const AdminCustomerSourcesItem = {
+  order: 'order',
+  newsletter: 'newsletter',
+} as const;
+
+export interface AdminCustomer {
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string;
+  sources: AdminCustomerSourcesItem[];
+}
+
 export type ListProductsParams = {
 /**
  * @nullable
@@ -239,4 +325,20 @@ limit?: number | null;
 export type GetCartParams = {
 sessionId: string;
 };
+
+export type AdminListOrdersParams = {
+status?: AdminListOrdersStatus;
+};
+
+export type AdminListOrdersStatus = typeof AdminListOrdersStatus[keyof typeof AdminListOrdersStatus];
+
+
+export const AdminListOrdersStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+  all: 'all',
+} as const;
 
