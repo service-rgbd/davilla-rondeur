@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { count, desc, eq } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable } from "@workspace/db";
-import { AdminUpdateOrderInput } from "@workspace/api-zod";
+import { AdminUpdateOrderBody } from "@workspace/api-zod";
 import { requireAdmin } from "../../lib/auth";
 import { getOrderWithItems } from "../../lib/orders";
 
@@ -72,7 +72,7 @@ router.patch("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> 
     return;
   }
 
-  const parsed = AdminUpdateOrderInput.safeParse(req.body);
+  const parsed = AdminUpdateOrderBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
