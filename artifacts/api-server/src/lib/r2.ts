@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let r2Client: S3Client | null = null;
@@ -39,6 +39,36 @@ function getR2Client(): S3Client {
   return r2Client;
 }
 
+function buildPublicUrl(key: string): string {
+  const custom = process.env.R2_PUBLIC_URL?.replace(/\/+$/, "");
+  const apiBase = (process.env.API_PUBLIC_URL ?? "https://api.davilla-rondeur.fr").replace(/\/+$/, "");
+
+  // Proxy API : fiable tant que media.davilla-rondeur.fr n'est pas lié au bucket R2
+  if (process.env.R2_SERVE_VIA_API === "true" || !custom) {
+    return `${apiBase}/api/media/${key}`;
+  }
+
+  return `${custom}/${key}`;
+}
+
+export async function getR2Object(key: string): Promise<{
+  body: ReadableStream | NodeJS.ReadableStream | Blob | undefined;
+  contentType: string | undefined;
+}> {
+  const { bucketName } = getR2Config();
+  const response = await getR2Client().send(
+    new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    }),
+  );
+
+  return {
+    body: response.Body,
+    contentType: response.ContentType,
+  };
+}
+
 function sanitizeFilename(filename: string): string {
   return filename
     .normalize("NFD")
@@ -66,7 +96,7 @@ export async function createPresignedUpload(input: {
 
   return {
     uploadUrl,
-    publicUrl: `${publicUrl}/${key}`,
+    publicUrl: buildPublicUrl(key),
     key,
   };
 }
@@ -76,7 +106,7 @@ export async function uploadObjectToR2(input: {
   filename: string;
   contentType: string;
 }): Promise<{ publicUrl: string; key: string }> {
-  const { bucketName, publicUrl } = getR2Config();
+  const { bucketName } = getR2Config();
   const safeName = sanitizeFilename(input.filename) || "image.jpg";
   const key = `products/${Date.now()}-${safeName}`;
 
@@ -90,7 +120,7 @@ export async function uploadObjectToR2(input: {
   );
 
   return {
-    publicUrl: `${publicUrl}/${key}`,
+    publicUrl: buildPublicUrl(key),
     key,
   };
 }

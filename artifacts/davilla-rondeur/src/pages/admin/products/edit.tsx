@@ -24,6 +24,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { uploadProductImage } from "@/lib/upload";
+import { normalizeMediaUrl } from "@/lib/product-images";
 import { adminRoutes } from "@/lib/admin-routes";
 import { ArrowLeft, Upload, X } from "lucide-react";
 import type { AdminCreateProductInput, AdminUpdateProductInput } from "@workspace/api-client-react";
@@ -71,6 +72,7 @@ export default function AdminProductEdit() {
   const [sizesText, setSizesText] = useState("");
   const [colorsText, setColorsText] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
   const [gallery, setGallery] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -88,20 +90,30 @@ export default function AdminProductEdit() {
       setSizesText(joinLines(existing.sizes));
       setColorsText(joinLines(existing.colors));
       setImageUrl(existing.imageUrl ?? "");
+      setImagePreview(normalizeMediaUrl(existing.imageUrl ?? ""));
       setGallery(existing.images ?? []);
     }
   }, [existing]);
 
   const handleUpload = async (file: File, target: "primary" | "gallery") => {
+    const localPreview = URL.createObjectURL(file);
+    if (target === "primary") {
+      setImagePreview(localPreview);
+    }
     setUploading(true);
     try {
       const url = await uploadProductImage(file);
+      const displayUrl = normalizeMediaUrl(url);
       if (target === "primary") {
         setImageUrl(url);
+        setImagePreview(displayUrl);
         if (!gallery.includes(url)) setGallery((prev) => [url, ...prev.filter((u) => u !== url)]);
       } else {
         setGallery((prev) => (prev.includes(url) ? prev : [...prev, url]));
-        if (!imageUrl) setImageUrl(url);
+        if (!imageUrl) {
+          setImageUrl(url);
+          setImagePreview(displayUrl);
+        }
       }
       toast({ title: "Image uploadée", description: "Fichier enregistré sur Cloudflare R2." });
     } catch (error) {
@@ -110,7 +122,11 @@ export default function AdminProductEdit() {
         description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
+      if (target === "primary" && !imageUrl) {
+        setImagePreview("");
+      }
     } finally {
+      URL.revokeObjectURL(localPreview);
       setUploading(false);
     }
   };
@@ -270,9 +286,13 @@ export default function AdminProductEdit() {
         <div className="space-y-6">
           <div className="border border-border p-6 space-y-4">
             <h2 className="font-sans font-semibold">Photo principale</h2>
-            {imageUrl ? (
+            {imageUrl || imagePreview ? (
               <div className="relative aspect-square max-w-xs bg-muted overflow-hidden">
-                <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={imagePreview || normalizeMediaUrl(imageUrl)}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               </div>
             ) : (
               <div className="aspect-square max-w-xs bg-muted flex items-center justify-center text-sm text-muted-foreground">
@@ -310,7 +330,7 @@ export default function AdminProductEdit() {
             <div className="grid grid-cols-3 gap-3">
               {gallery.map((url) => (
                 <div key={url} className="relative aspect-square bg-muted overflow-hidden group">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={normalizeMediaUrl(url)} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     className="absolute top-1 right-1 bg-background/90 p-1 opacity-0 group-hover:opacity-100 transition-opacity"

@@ -8,14 +8,37 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 
 export const HERO_IMAGE = "/images/photo_2026-05-24%2017.46.23.jpeg";
 
+function getMediaApiBase(): string {
+  const api = import.meta.env.VITE_API_BASE_URL;
+  if (typeof api === "string" && api.trim() !== "") {
+    return `${api.replace(/\/+$/, "")}/api/media`;
+  }
+  return "https://api.davilla-rondeur.fr/api/media";
+}
+
+/** Réécrit media.davilla-rondeur.fr vers le proxy API si le domaine custom R2 n'est pas actif. */
+export function normalizeMediaUrl(url: string): string {
+  if (!url) return url;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("https://media.davilla-rondeur.fr/")) {
+    const key = trimmed.slice("https://media.davilla-rondeur.fr/".length);
+    return `${getMediaApiBase()}/${key}`;
+  }
+  return trimmed;
+}
+
 export function resolveProductImage(product: Pick<Product, "imageUrl" | "images">): string {
-  return product.imageUrl || product.images?.[0] || "";
+  const raw = product.imageUrl || product.images?.[0] || "";
+  return normalizeMediaUrl(raw);
 }
 
 export function resolveProductGallery(product: Pick<Product, "imageUrl" | "images">): string[] {
-  if (product.images?.length) return product.images;
-  if (product.imageUrl) return [product.imageUrl];
-  return [];
+  const urls = product.images?.length
+    ? product.images
+    : product.imageUrl
+      ? [product.imageUrl]
+      : [];
+  return urls.map(normalizeMediaUrl);
 }
 
 /** @deprecated Utiliser resolveProductImage(product) — les images viennent de la DB / R2 */

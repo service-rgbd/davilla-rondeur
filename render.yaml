@@ -53,4 +53,6 @@ services:
       - key: R2_SECRET_ACCESS_KEY
         sync: false
       - key: R2_PUBLIC_URL
-        sync: false
+        value: https://media.davilla-rondeur.fr
+      - key: R2_SERVE_VIA_API
+        value: "true"

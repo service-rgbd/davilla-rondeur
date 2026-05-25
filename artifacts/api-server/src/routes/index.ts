@@ -7,10 +7,12 @@ import checkoutRouter from "./checkout";
 import ordersRouter from "./orders";
 import newsletterRouter from "./newsletter";
 import adminRouter from "./admin";
+import mediaRouter from "./media";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(mediaRouter);
 router.use(productsRouter);
 router.use(categoriesRouter);
 router.use(cartRouter);
