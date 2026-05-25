@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, ordersTable } from "@workspace/db";
 import { CreateCheckoutSessionBody } from "@workspace/api-zod";
-import { getFrontendUrl, getStripe, isStripeConfigured } from "../lib/stripe";
+import { getFrontendUrl, getStripe, isStripeConfigured, toAbsolutePublicUrl } from "../lib/stripe";
 import {
   cancelPendingOrder,
   createPendingOrderFromCart,
@@ -32,17 +32,13 @@ router.post("/checkout/sessions", async (req, res): Promise<void> => {
     const stripe = getStripe();
     const frontendUrl = getFrontendUrl();
 
-    const toAbsoluteImageUrl = (url: string | null | undefined): string | undefined => {
-      if (!url) return undefined;
-      if (url.startsWith("http://") || url.startsWith("https://")) return url;
-      return `${frontendUrl}${url.startsWith("/") ? url : `/${url}`}`;
-    };
-
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: email,
       line_items: cartItems.map((item) => {
-        const imageUrl = toAbsoluteImageUrl(item.productImageUrl);
+        const imageUrl = item.productImageUrl
+          ? toAbsolutePublicUrl(frontendUrl, item.productImageUrl)
+          : undefined;
         return {
           quantity: item.quantity,
           price_data: {
@@ -88,6 +84,11 @@ router.post("/checkout/sessions", async (req, res): Promise<void> => {
   } catch (error) {
     if (error instanceof OrderError) {
       res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+
+    if (error instanceof Error && error.message.includes("FRONTEND_URL")) {
+      res.status(503).json({ error: error.message });
       return;
     }
 

@@ -20,7 +20,28 @@ export function isStripeConfigured(): boolean {
 }
 
 export function getFrontendUrl(): string {
-  return process.env.FRONTEND_URL ?? "http://localhost:19957";
+  const raw = process.env.FRONTEND_URL?.trim();
+  if (!raw) {
+    return "http://localhost:19957";
+  }
+
+  let value = raw.replace(/^['"]+|['"]+$/g, "").replace(/\/+$/, "");
+
+  if (!/^https?:\/\//i.test(value)) {
+    value = `https://${value}`;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`Unsupported protocol: ${parsed.protocol}`);
+    }
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    throw new Error(
+      `FRONTEND_URL invalide: "${raw}". Exemple: https://davilla-rondeur.fr`,
+    );
+  }
 }
 
 export function getStripeWebhookSecret(): string {
@@ -29,4 +50,20 @@ export function getStripeWebhookSecret(): string {
     throw new Error("STRIPE_WEBHOOK_SECRET must be set");
   }
   return secret;
+}
+
+export function toAbsolutePublicUrl(baseUrl: string, pathOrUrl: string): string {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+
+  const base = baseUrl.replace(/\/+$/, "");
+  const path = pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`;
+  const [pathname, search = ""] = path.split("?");
+  const encodedPath = pathname
+    .split("/")
+    .map((segment, index) => (index === 0 ? segment : encodeURIComponent(segment)))
+    .join("/");
+
+  return `${base}${encodedPath}${search ? `?${search}` : ""}`;
 }
