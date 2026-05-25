@@ -1,4 +1,5 @@
 import { getAdminToken } from "@/lib/admin-auth";
+import { toStoredMediaUrl } from "@/lib/product-images";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -12,7 +13,7 @@ function getApiBaseUrl(): string {
 
 /**
  * Upload via l'API (pas d'appel direct au bucket R2).
- * Les URLs publiques utilisent R2_PUBLIC_URL (ex. media.davilla-rondeur.fr).
+ * Retourne une URL via l'API (/api/media/...) pour l'aperçu et la boutique.
  */
 export async function uploadProductImage(file: File): Promise<string> {
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -45,5 +46,5 @@ export async function uploadProductImage(file: File): Promise<string> {
     throw new Error("Réponse upload invalide");
   }
 
-  return data.publicUrl;
+  return toStoredMediaUrl(data.publicUrl);
 }

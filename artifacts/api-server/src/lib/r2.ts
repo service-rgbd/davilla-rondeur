@@ -40,14 +40,14 @@ function getR2Client(): S3Client {
 }
 
 function buildPublicUrl(key: string): string {
-  const custom = process.env.R2_PUBLIC_URL?.replace(/\/+$/, "");
   const apiBase = (process.env.API_PUBLIC_URL ?? "https://api.davilla-rondeur.fr").replace(/\/+$/, "");
 
-  // Proxy API : fiable tant que media.davilla-rondeur.fr n'est pas lié au bucket R2
-  if (process.env.R2_SERVE_VIA_API === "true" || !custom) {
+  // Par défaut : proxy API (media.davilla-rondeur.fr renvoie 404 tant que le domaine R2 n'est pas lié)
+  if (process.env.R2_SERVE_VIA_API !== "false") {
     return `${apiBase}/api/media/${key}`;
   }
 
+  const custom = process.env.R2_PUBLIC_URL?.replace(/\/+$/, "") ?? apiBase;
   return `${custom}/${key}`;
 }
 

@@ -16,15 +16,25 @@ function getMediaApiBase(): string {
   return "https://api.davilla-rondeur.fr/api/media";
 }
 
-/** Réécrit media.davilla-rondeur.fr vers le proxy API si le domaine custom R2 n'est pas actif. */
+/** URL affichable (aperçu + boutique) — réécrit media.* vers le proxy API. */
 export function normalizeMediaUrl(url: string): string {
   if (!url) return url;
   const trimmed = url.trim();
-  if (trimmed.startsWith("https://media.davilla-rondeur.fr/")) {
-    const key = trimmed.slice("https://media.davilla-rondeur.fr/".length);
-    return `${getMediaApiBase()}/${key}`;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.hostname === "media.davilla-rondeur.fr") {
+      const key = decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
+      return `${getMediaApiBase()}/${key}`;
+    }
+  } catch {
+    /* URL relative ou invalide */
   }
   return trimmed;
+}
+
+/** URL à enregistrer en base (proxy API, fonctionne sans domaine media custom). */
+export function toStoredMediaUrl(url: string): string {
+  return normalizeMediaUrl(url);
 }
 
 export function resolveProductImage(product: Pick<Product, "imageUrl" | "images">): string {
