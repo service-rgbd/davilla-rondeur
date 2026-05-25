@@ -25,7 +25,13 @@ export function getFrontendUrl(): string {
     return "http://localhost:19957";
   }
 
-  let value = raw.replace(/^['"]+|['"]+$/g, "").replace(/\/+$/, "");
+  // FRONTEND_URL must be a single URL (not a comma-separated list).
+  const single = raw.split(",")[0]?.trim() ?? "";
+  let value = single.replace(/^['"]+|['"]+$/g, "").replace(/\/+$/, "");
+
+  if (!value) {
+    return "http://localhost:19957";
+  }
 
   if (!/^https?:\/\//i.test(value)) {
     value = `https://${value}`;
@@ -39,9 +45,18 @@ export function getFrontendUrl(): string {
     return `${parsed.protocol}//${parsed.host}`;
   } catch {
     throw new Error(
-      `FRONTEND_URL invalide: "${raw}". Exemple: https://davilla-rondeur.fr`,
+      `FRONTEND_URL invalide: "${raw}". Mettez une seule URL, ex: https://davilla-rondeur.fr`,
     );
   }
+}
+
+export function parseOriginList(raw: string | undefined): string[] {
+  if (!raw) return [];
+
+  return raw
+    .split(",")
+    .map((origin) => origin.trim().replace(/^['"]+|['"]+$/g, "").replace(/\/+$/, ""))
+    .filter(Boolean);
 }
 
 export function getStripeWebhookSecret(): string {

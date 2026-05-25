@@ -3,13 +3,11 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { handleStripeWebhook } from "./routes/webhooks";
-import { getFrontendUrl } from "./lib/stripe";
+import { getFrontendUrl, parseOriginList } from "./lib/stripe";
 import { logger } from "./lib/logger";
 
 function getAllowedOrigins(): string[] {
-  const frontendUrl = getFrontendUrl().replace(/\/+$/, "");
   const origins = new Set<string>([
-    frontendUrl,
     "https://davilla-rondeur.fr",
     "https://www.davilla-rondeur.fr",
     "http://localhost:19957",
@@ -18,12 +16,14 @@ function getAllowedOrigins(): string[] {
     "http://127.0.0.1:5173",
   ]);
 
-  const extra = process.env.ALLOWED_ORIGINS;
-  if (extra) {
-    for (const origin of extra.split(",")) {
-      const trimmed = origin.trim().replace(/\/+$/, "");
-      if (trimmed) origins.add(trimmed);
-    }
+  try {
+    origins.add(getFrontendUrl());
+  } catch (error) {
+    logger.warn({ err: error }, "FRONTEND_URL ignored for CORS — fix env on Render");
+  }
+
+  for (const origin of parseOriginList(process.env.ALLOWED_ORIGINS)) {
+    origins.add(origin);
   }
 
   return [...origins];
