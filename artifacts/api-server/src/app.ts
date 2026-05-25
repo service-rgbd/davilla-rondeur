@@ -14,11 +14,16 @@ function getAllowedOrigins(): string[] {
     "https://www.davilla-rondeur.fr",
     "http://localhost:19957",
     "http://localhost:5173",
+    "http://127.0.0.1:19957",
+    "http://127.0.0.1:5173",
   ]);
 
-  if (process.env.NODE_ENV !== "production") {
-    origins.add("http://127.0.0.1:19957");
-    origins.add("http://127.0.0.1:5173");
+  const extra = process.env.ALLOWED_ORIGINS;
+  if (extra) {
+    for (const origin of extra.split(",")) {
+      const trimmed = origin.trim().replace(/\/+$/, "");
+      if (trimmed) origins.add(trimmed);
+    }
   }
 
   return [...origins];
