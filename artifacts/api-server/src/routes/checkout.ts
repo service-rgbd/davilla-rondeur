@@ -59,6 +59,9 @@ router.post("/checkout/sessions", async (req, res): Promise<void> => {
       shipping_address_collection: {
         allowed_countries: ["FR", "BE", "CH", "LU", "MC", "DE", "IT", "ES", "GB"],
       },
+      phone_number_collection: {
+        enabled: true,
+      },
       success_url: `${frontendUrl}/commande/succes?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/panier?checkout=cancelled`,
       metadata: {

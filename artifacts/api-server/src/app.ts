@@ -13,8 +13,10 @@ function getAllowedOrigins(): string[] {
     "https://portail.davilla-rondeur.fr",
     "http://localhost:19957",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://127.0.0.1:19957",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
   ]);
 
   try {

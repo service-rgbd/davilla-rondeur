@@ -28,8 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye } from "lucide-react";
+import { Eye, Printer, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { adminRoutes } from "@/lib/admin-routes";
 
 const FILTERS = [
   { value: "all", label: "Toutes" },
@@ -105,7 +106,17 @@ function OrderDetailDialog({
           <div className="space-y-6 font-sans text-sm">
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 sm:justify-between">
               <OrderStatusBadge status={order.status} />
-              <Select value={order.status} onValueChange={handleStatusChange} disabled={updateMutation.isPending}>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-none h-10 font-sans text-xs uppercase tracking-widest"
+                  onClick={() => window.open(adminRoutes.orderPrint(order.id), "_blank", "noopener")}
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimer
+                </Button>
+                <Select value={order.status} onValueChange={handleStatusChange} disabled={updateMutation.isPending}>
                 <SelectTrigger className="w-full sm:w-48 rounded-none h-10">
                   <SelectValue placeholder="Changer le statut" />
                 </SelectTrigger>
@@ -117,6 +128,7 @@ function OrderDetailDialog({
                   ))}
                 </SelectContent>
               </Select>
+              </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
@@ -130,10 +142,10 @@ function OrderDetailDialog({
               </div>
             </div>
 
-            {order.shippingAddress ? (
+            {order.shippingAddress?.line1 ? (
               <div className="border border-border p-4">
                 <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Adresse de livraison</p>
-                <p>{order.shippingAddress.name}</p>
+                <p className="font-medium">{order.shippingAddress.name}</p>
                 <p>{order.shippingAddress.line1}</p>
                 {order.shippingAddress.line2 ? <p>{order.shippingAddress.line2}</p> : null}
                 <p>
@@ -141,7 +153,18 @@ function OrderDetailDialog({
                 </p>
                 <p>{order.shippingAddress.country}</p>
               </div>
-            ) : null}
+            ) : (
+              <div className="border border-amber-500/40 bg-amber-500/5 p-4 flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-900 dark:text-amber-200">Adresse non enregistrée</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Cette commande n&apos;a pas d&apos;adresse en base. Les nouveaux paiements Stripe la
+                    enregistrent automatiquement. Contactez le client ({order.email}) si besoin.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="border border-border overflow-hidden">
               <table className="w-full">

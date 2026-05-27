@@ -27,7 +27,7 @@ services:
       - key: FRONTEND_URL
         value: https://davilla-rondeur.fr
       - key: ALLOWED_ORIGINS
-        value: http://localhost:19957,http://127.0.0.1:19957,http://localhost:5173,http://127.0.0.1:5173,https://portail.davilla-rondeur.fr
+        value: http://localhost:19957,http://127.0.0.1:19957,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://portail.davilla-rondeur.fr
       - key: EMAIL_FROM
         value: "Davilla Rondeur <noreply@davilla-rondeur.fr>"
       - key: R2_BUCKET_NAME

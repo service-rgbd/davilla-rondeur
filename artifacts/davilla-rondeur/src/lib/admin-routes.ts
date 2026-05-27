@@ -10,6 +10,7 @@ export const adminRoutes = {
   login: path("/login"),
   home: rawBase || "/",
   orders: path("/orders"),
+  orderPrint: (id: number | string) => path(`/orders/${id}/print`),
   products: path("/products"),
   productNew: path("/products/new"),
   productEdit: (id: number | string) => path(`/products/${id}`),

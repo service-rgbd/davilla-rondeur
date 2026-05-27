@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { sendOrderConfirmationEmail } from "./email";
 import { logger } from "./logger";
+import { extractShippingFromCheckoutSession } from "./stripe-shipping";
 
 export type OrderResponse = {
   id: number;
@@ -181,11 +182,18 @@ export async function fulfillOrderFromStripeSession(
     return getOrderWithItems(order.id);
   }
 
-  const shippingDetails = stripeSession.shipping_details;
+  const shipping = extractShippingFromCheckoutSession(stripeSession);
   const paymentIntentId =
     typeof stripeSession.payment_intent === "string"
       ? stripeSession.payment_intent
       : stripeSession.payment_intent?.id ?? null;
+
+  if (!shipping?.line1) {
+    logger.warn(
+      { orderId: order.id, stripeSessionId: stripeSession.id },
+      "Commande payée sans adresse de livraison Stripe",
+    );
+  }
 
   await db
     .update(ordersTable)
@@ -194,12 +202,12 @@ export async function fulfillOrderFromStripeSession(
       stripeSessionId: stripeSession.id,
       stripePaymentIntentId: paymentIntentId,
       paidAt: new Date(),
-      shippingName: shippingDetails?.name ?? null,
-      shippingLine1: shippingDetails?.address?.line1 ?? null,
-      shippingLine2: shippingDetails?.address?.line2 ?? null,
-      shippingCity: shippingDetails?.address?.city ?? null,
-      shippingPostalCode: shippingDetails?.address?.postal_code ?? null,
-      shippingCountry: shippingDetails?.address?.country ?? null,
+      shippingName: shipping?.name ?? null,
+      shippingLine1: shipping?.line1 ?? null,
+      shippingLine2: shipping?.line2 ?? null,
+      shippingCity: shipping?.city ?? null,
+      shippingPostalCode: shipping?.postalCode ?? null,
+      shippingCountry: shipping?.country ?? null,
     })
     .where(eq(ordersTable.id, order.id));
 
