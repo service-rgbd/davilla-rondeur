@@ -59,16 +59,21 @@ app.use(
     },
   }),
 );
+const allowedOrigins = getAllowedOrigins();
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || getAllowedOrigins().includes(origin)) {
-        callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin ?? allowedOrigins[0]);
         return;
       }
 
+      logger.warn({ origin, allowedOrigins }, "CORS origin rejected");
       callback(null, false);
     },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 app.use(express.json());
