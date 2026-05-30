@@ -9,7 +9,7 @@ import {
   type Order,
   type OrderItem,
 } from "@workspace/db";
-import { sendOrderConfirmationEmail } from "./email";
+import { sendOrderConfirmationEmail, isResendConfigured } from "./email";
 import { logger } from "./logger";
 import { getStripe, isStripeConfigured } from "./stripe";
 import {
@@ -116,6 +116,58 @@ async function applyShippingToOrder(
       shippingCountry: shipping.country,
     })
     .where(eq(ordersTable.id, orderId));
+}
+
+const CONFIRMATION_EMAIL_SENT = "confirmationEmailSent";
+
+async function maybeSendOrderConfirmationEmail(
+  order: Order,
+  items: OrderItem[],
+  stripeSession: Stripe.Checkout.Session,
+  shipping: ExtractedShipping | null,
+): Promise<void> {
+  if (stripeSession.metadata?.[CONFIRMATION_EMAIL_SENT] === "true") {
+    return;
+  }
+
+  if (!isResendConfigured()) {
+    logger.warn(
+      { orderId: order.id, email: order.email },
+      "Email de confirmation ignoré — configurez RESEND_API_KEY sur Render",
+    );
+    return;
+  }
+
+  const sent = await sendOrderConfirmationEmail({
+    orderId: order.id,
+    email: order.email,
+    total: parseFloat(order.total),
+    items: items.map((item) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      price: parseFloat(item.price),
+    })),
+    shippingAddress: shipping?.line1 ? shipping : null,
+  });
+
+  if (!sent) {
+    return;
+  }
+
+  try {
+    const stripe = getStripe();
+    await stripe.checkout.sessions.update(stripeSession.id, {
+      metadata: {
+        ...stripeSession.metadata,
+        [CONFIRMATION_EMAIL_SENT]: "true",
+      },
+    });
+  } catch (error) {
+    logger.warn(
+      { err: error, orderId: order.id, stripeSessionId: stripeSession.id },
+      "Email envoyé mais impossible de marquer la session Stripe",
+    );
+  }
 }
 
 export async function syncOrderShippingFromStripe(orderId: number): Promise<OrderResponse | null> {
@@ -254,6 +306,11 @@ export async function fulfillOrderFromStripeSession(
       await applyShippingToOrder(order.id, shipping);
       logger.info({ orderId: order.id }, "Adresse de livraison récupérée pour commande déjà payée");
     }
+    const items = await db
+      .select()
+      .from(orderItemsTable)
+      .where(eq(orderItemsTable.orderId, order.id));
+    await maybeSendOrderConfirmationEmail(order, items, stripeSession, shipping);
     return getOrderWithItems(order.id);
   }
 
@@ -286,16 +343,7 @@ export async function fulfillOrderFromStripeSession(
 
   const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
 
-  await sendOrderConfirmationEmail({
-    orderId: order.id,
-    email: order.email,
-    total: parseFloat(order.total),
-    items: items.map((item) => ({
-      productName: item.productName,
-      quantity: item.quantity,
-      price: parseFloat(item.price),
-    })),
-  });
+  await maybeSendOrderConfirmationEmail(order, items, stripeSession, shipping);
 
   return getOrderWithItems(order.id);
 }
