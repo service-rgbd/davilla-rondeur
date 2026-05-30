@@ -3,7 +3,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable } from "@workspace/db";
 import { AdminUpdateOrderBody } from "@workspace/api-zod";
 import { requireAdmin } from "../../lib/auth";
-import { getOrderWithItems } from "../../lib/orders";
+import { getOrderWithItems, syncOrderShippingFromStripe } from "../../lib/orders";
 
 const router: IRouter = Router();
 
@@ -52,10 +52,14 @@ router.get("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> =>
     return;
   }
 
-  const order = await getOrderWithItems(id);
+  let order = await getOrderWithItems(id);
   if (!order) {
     res.status(404).json({ error: "Commande introuvable" });
     return;
+  }
+
+  if (!order.shippingAddress?.line1 && order.stripeSessionId) {
+    order = (await syncOrderShippingFromStripe(id)) ?? order;
   }
 
   res.json({

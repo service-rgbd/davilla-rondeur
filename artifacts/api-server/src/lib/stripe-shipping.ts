@@ -29,23 +29,17 @@ function fromDetails(details: ShippingDetailsLike | null | undefined): Extracted
 }
 
 /**
- * Stripe Checkout : l'adresse peut être dans shipping_details, collected_information
- * ou customer_details selon la version d'API / le payload webhook.
+ * Stripe Checkout : l'adresse peut être dans collected_information.shipping_details
+ * (API récente), shipping_details (legacy), customer_details ou PaymentIntent.
  */
 export function extractShippingFromCheckoutSession(
   session: Stripe.Checkout.Session,
 ): ExtractedShipping | null {
-  const collected = (
-    session as Stripe.Checkout.Session & {
-      collected_information?: { shipping_details?: ShippingDetailsLike };
-    }
-  ).collected_information?.shipping_details;
-
   return (
+    fromDetails(session.collected_information?.shipping_details) ??
     fromDetails(session.shipping_details) ??
-    fromDetails(collected) ??
     fromDetails(
-      session.customer_details
+      session.customer_details?.address?.line1
         ? {
             name: session.customer_details.name,
             address: session.customer_details.address,
@@ -53,4 +47,60 @@ export function extractShippingFromCheckoutSession(
         : null,
     )
   );
+}
+
+export function extractShippingFromPaymentIntent(
+  paymentIntent: Stripe.PaymentIntent,
+): ExtractedShipping | null {
+  return fromDetails(paymentIntent.shipping);
+}
+
+export function extractShippingFromCustomer(
+  customer: Stripe.Customer | Stripe.DeletedCustomer,
+): ExtractedShipping | null {
+  if ("deleted" in customer && customer.deleted) {
+    return null;
+  }
+
+  const activeCustomer = customer as Stripe.Customer;
+
+  return (
+    fromDetails(
+      activeCustomer.shipping?.address?.line1
+        ? {
+            name: activeCustomer.shipping.name,
+            address: activeCustomer.shipping.address,
+          }
+        : null,
+    ) ??
+    fromDetails(
+      activeCustomer.address?.line1
+        ? {
+            name: activeCustomer.name ?? null,
+            address: activeCustomer.address,
+          }
+        : null,
+    )
+  );
+}
+
+export async function resolveShippingFromCheckoutSession(
+  stripe: Stripe,
+  sessionId: string,
+): Promise<{ session: Stripe.Checkout.Session; shipping: ExtractedShipping | null }> {
+  const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    expand: ["payment_intent", "customer"],
+  });
+
+  let shipping = extractShippingFromCheckoutSession(session);
+
+  if (!shipping?.line1 && session.payment_intent && typeof session.payment_intent !== "string") {
+    shipping = extractShippingFromPaymentIntent(session.payment_intent);
+  }
+
+  if (!shipping?.line1 && session.customer && typeof session.customer !== "string") {
+    shipping = extractShippingFromCustomer(session.customer);
+  }
+
+  return { session, shipping };
 }

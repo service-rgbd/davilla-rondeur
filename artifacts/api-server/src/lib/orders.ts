@@ -11,7 +11,12 @@ import {
 } from "@workspace/db";
 import { sendOrderConfirmationEmail } from "./email";
 import { logger } from "./logger";
-import { extractShippingFromCheckoutSession } from "./stripe-shipping";
+import { getStripe, isStripeConfigured } from "./stripe";
+import {
+  type ExtractedShipping,
+  extractShippingFromCheckoutSession,
+  resolveShippingFromCheckoutSession,
+} from "./stripe-shipping";
 
 export type OrderResponse = {
   id: number;
@@ -87,6 +92,61 @@ export function formatOrder(order: Order, items: OrderItem[]): OrderResponse {
   };
 }
 
+function orderHasShipping(order: Order): boolean {
+  return Boolean(
+    order.shippingLine1 ||
+      order.shippingCity ||
+      order.shippingPostalCode ||
+      order.shippingCountry,
+  );
+}
+
+async function applyShippingToOrder(
+  orderId: number,
+  shipping: ExtractedShipping,
+): Promise<void> {
+  await db
+    .update(ordersTable)
+    .set({
+      shippingName: shipping.name,
+      shippingLine1: shipping.line1,
+      shippingLine2: shipping.line2,
+      shippingCity: shipping.city,
+      shippingPostalCode: shipping.postalCode,
+      shippingCountry: shipping.country,
+    })
+    .where(eq(ordersTable.id, orderId));
+}
+
+export async function syncOrderShippingFromStripe(orderId: number): Promise<OrderResponse | null> {
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order) return null;
+
+  if (orderHasShipping(order) || !order.stripeSessionId || !isStripeConfigured()) {
+    return getOrderWithItems(orderId);
+  }
+
+  try {
+    const stripe = getStripe();
+    const { shipping } = await resolveShippingFromCheckoutSession(stripe, order.stripeSessionId);
+
+    if (!shipping?.line1) {
+      logger.warn(
+        { orderId: order.id, stripeSessionId: order.stripeSessionId },
+        "Impossible de récupérer l'adresse Stripe pour cette commande",
+      );
+      return getOrderWithItems(orderId);
+    }
+
+    await applyShippingToOrder(order.id, shipping);
+    logger.info({ orderId: order.id }, "Adresse de livraison synchronisée depuis Stripe");
+    return getOrderWithItems(orderId);
+  } catch (error) {
+    logger.error({ err: error, orderId: order.id }, "Échec synchronisation adresse Stripe");
+    return getOrderWithItems(orderId);
+  }
+}
+
 export async function getOrderWithItems(orderId: number): Promise<OrderResponse | null> {
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
   if (!order) return null;
@@ -102,6 +162,10 @@ export async function getOrderByStripeSessionId(stripeSessionId: string): Promis
     .where(eq(ordersTable.stripeSessionId, stripeSessionId));
 
   if (!order) return null;
+
+  if (!orderHasShipping(order)) {
+    return syncOrderShippingFromStripe(order.id);
+  }
 
   const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
   return formatOrder(order, items);
@@ -165,6 +229,7 @@ export async function createPendingOrderFromCart(sessionId: string, email: strin
 
 export async function fulfillOrderFromStripeSession(
   stripeSession: Stripe.Checkout.Session,
+  resolvedShipping?: ExtractedShipping | null,
 ): Promise<OrderResponse | null> {
   const orderId = Number.parseInt(stripeSession.metadata?.orderId ?? "", 10);
   if (!Number.isFinite(orderId)) {
@@ -178,15 +243,19 @@ export async function fulfillOrderFromStripeSession(
     return null;
   }
 
-  if (order.status === "paid") {
-    return getOrderWithItems(order.id);
-  }
-
-  const shipping = extractShippingFromCheckoutSession(stripeSession);
+  const shipping = resolvedShipping ?? extractShippingFromCheckoutSession(stripeSession);
   const paymentIntentId =
     typeof stripeSession.payment_intent === "string"
       ? stripeSession.payment_intent
       : stripeSession.payment_intent?.id ?? null;
+
+  if (order.status === "paid") {
+    if (!orderHasShipping(order) && shipping?.line1) {
+      await applyShippingToOrder(order.id, shipping);
+      logger.info({ orderId: order.id }, "Adresse de livraison récupérée pour commande déjà payée");
+    }
+    return getOrderWithItems(order.id);
+  }
 
   if (!shipping?.line1) {
     logger.warn(

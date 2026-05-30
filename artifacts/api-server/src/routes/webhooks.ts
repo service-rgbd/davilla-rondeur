@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type Stripe from "stripe";
 import { getStripe, getStripeWebhookSecret, isStripeConfigured } from "../lib/stripe";
 import { cancelPendingOrder, fulfillOrderFromStripeSession } from "../lib/orders";
+import { resolveShippingFromCheckoutSession } from "../lib/stripe-shipping";
 import { logger } from "../lib/logger";
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
@@ -31,8 +32,8 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
     switch (event.type) {
       case "checkout.session.completed": {
         const thin = event.data.object as Stripe.Checkout.Session;
-        const session = await stripe.checkout.sessions.retrieve(thin.id);
-        await fulfillOrderFromStripeSession(session);
+        const { session, shipping } = await resolveShippingFromCheckoutSession(stripe, thin.id);
+        await fulfillOrderFromStripeSession(session, shipping);
         break;
       }
       case "checkout.session.expired": {
