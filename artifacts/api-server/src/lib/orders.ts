@@ -124,14 +124,30 @@ async function applyShippingToOrder(
 
 const CONFIRMATION_EMAIL_SENT = "confirmationEmailSent";
 
+function orderIsPaid(status: string): boolean {
+  return status === "paid" || status === "shipped" || status === "delivered";
+}
+
+function shippingFromOrder(order: Order): ExtractedShipping | null {
+  if (!order.shippingLine1) return null;
+  return {
+    name: order.shippingName,
+    line1: order.shippingLine1,
+    line2: order.shippingLine2,
+    city: order.shippingCity,
+    postalCode: order.shippingPostalCode,
+    country: order.shippingCountry,
+  };
+}
+
 async function maybeSendOrderConfirmationEmail(
   order: Order,
   items: OrderItem[],
   stripeSession: Stripe.Checkout.Session,
   shipping: ExtractedShipping | null,
-): Promise<void> {
+): Promise<boolean> {
   if (stripeSession.metadata?.[CONFIRMATION_EMAIL_SENT] === "true") {
-    return;
+    return false;
   }
 
   if (!isResendConfigured()) {
@@ -139,12 +155,15 @@ async function maybeSendOrderConfirmationEmail(
       { orderId: order.id, email: order.email },
       "Email de confirmation ignoré — configurez RESEND_API_KEY sur Render",
     );
-    return;
+    return false;
   }
+
+  const recipientEmail =
+    stripeSession.customer_details?.email?.trim() || order.email.trim();
 
   const sent = await sendOrderConfirmationEmail({
     orderId: order.id,
-    email: order.email,
+    email: recipientEmail,
     total: parseFloat(order.total),
     items: items.map((item) => ({
       productName: item.productName,
@@ -155,7 +174,7 @@ async function maybeSendOrderConfirmationEmail(
   });
 
   if (!sent) {
-    return;
+    return false;
   }
 
   try {
@@ -171,6 +190,56 @@ async function maybeSendOrderConfirmationEmail(
       { err: error, orderId: order.id, stripeSessionId: stripeSession.id },
       "Email envoyé mais impossible de marquer la session Stripe",
     );
+  }
+
+  return true;
+}
+
+/** Garantit l'envoi de l'email si la commande est payée (webhook ou page succès). */
+export async function ensureOrderConfirmationEmailSent(orderId: number): Promise<void> {
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order || !orderIsPaid(order.status) || !order.stripeSessionId) {
+    return;
+  }
+
+  if (!isResendConfigured()) {
+    return;
+  }
+
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+
+    if (session.metadata?.[CONFIRMATION_EMAIL_SENT] === "true") {
+      return;
+    }
+
+    const items = await db
+      .select()
+      .from(orderItemsTable)
+      .where(eq(orderItemsTable.orderId, order.id));
+
+    let shipping = shippingFromOrder(order);
+    if (!shipping?.line1) {
+      const synced = await syncOrderShippingFromStripe(order.id);
+      if (synced?.shippingAddress?.line1) {
+        shipping = {
+          name: synced.shippingAddress.name,
+          line1: synced.shippingAddress.line1,
+          line2: synced.shippingAddress.line2,
+          city: synced.shippingAddress.city,
+          postalCode: synced.shippingAddress.postalCode,
+          country: synced.shippingAddress.country,
+        };
+      }
+    }
+
+    const sent = await maybeSendOrderConfirmationEmail(order, items, session, shipping);
+    if (sent) {
+      logger.info({ orderId: order.id, email: order.email }, "Email de confirmation envoyé");
+    }
+  } catch (error) {
+    logger.error({ err: error, orderId }, "Impossible d'envoyer l'email de confirmation");
   }
 }
 
@@ -245,11 +314,14 @@ export async function getOrderByStripeSessionId(stripeSessionId: string): Promis
   if (!order) return null;
 
   if (!orderHasShipping(order)) {
-    return syncOrderShippingFromStripe(order.id);
+    await syncOrderShippingFromStripe(order.id);
   }
 
-  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
-  return formatOrder(order, items);
+  if (orderIsPaid(order.status)) {
+    await ensureOrderConfirmationEmailSent(order.id);
+  }
+
+  return getOrderWithItems(order.id);
 }
 
 export async function createPendingOrderFromCart(sessionId: string, email: string) {

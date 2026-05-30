@@ -82,21 +82,65 @@ export async function sendOrderConfirmationEmail(payload: OrderEmailPayload): Pr
     return false;
   }
 
-  const { error } = await getResend().emails.send({
+  const { data, error } = await getResend().emails.send({
     from: getFromAddress(),
     to: payload.email,
     subject: `Confirmation de commande #${payload.orderId} — Davilla Rondeur`,
     html,
+    text: [
+      `Merci pour votre commande #${payload.orderId} chez Davilla Rondeur.`,
+      "",
+      ...payload.items.map(
+        (item) => `- ${item.productName} × ${item.quantity} : ${(item.price * item.quantity).toFixed(2)} €`,
+      ),
+      "",
+      `Total TTC : ${payload.total.toFixed(2)} €`,
+      "",
+      shipping?.line1
+        ? [
+            "Adresse de livraison :",
+            shipping.name ?? "",
+            shipping.line1,
+            shipping.line2 ?? "",
+            `${shipping.postalCode ?? ""} ${shipping.city ?? ""}`.trim(),
+            shipping.country ?? "",
+          ]
+            .filter(Boolean)
+            .join("\n")
+        : "",
+      "",
+      "Nous préparons votre colis discret avec soin.",
+      "L'équipe Davilla Rondeur",
+    ]
+      .filter(Boolean)
+      .join("\n"),
   });
 
   if (error) {
     logger.error(
-      { err: error, orderId: payload.orderId, email: payload.email, from: getFromAddress() },
-      "Échec envoi email de confirmation via Resend",
+      {
+        err: error,
+        orderId: payload.orderId,
+        email: payload.email,
+        from: getFromAddress(),
+        resendMessage: error.message,
+      },
+      "Échec envoi email de confirmation via Resend — vérifiez le domaine davilla-rondeur.fr dans Resend",
     );
     return false;
   }
 
-  logger.info({ orderId: payload.orderId, email: payload.email }, "Order confirmation sent via Resend");
+  if (!data?.id) {
+    logger.error(
+      { orderId: payload.orderId, email: payload.email },
+      "Resend n'a pas renvoyé d'identifiant d'email",
+    );
+    return false;
+  }
+
+  logger.info(
+    { orderId: payload.orderId, email: payload.email, resendId: data.id },
+    "Order confirmation sent via Resend",
+  );
   return true;
 }
