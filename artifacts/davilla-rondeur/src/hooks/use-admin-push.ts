@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import {
   useAdminGetPushStatus,
   useAdminGetPushVapidKey,
+  useAdminSendPushTest,
   useAdminSubscribePush,
   useAdminUnsubscribePush,
 } from "@workspace/api-client-react";
@@ -35,6 +36,7 @@ export function useAdminPush() {
 
   const subscribeMutation = useAdminSubscribePush();
   const unsubscribeMutation = useAdminUnsubscribePush();
+  const testMutation = useAdminSendPushTest();
 
   const enable = useCallback(async () => {
     if (!vapidKey?.publicKey) {
@@ -55,6 +57,11 @@ export function useAdminPush() {
     await refetchStatus();
   }, [refetchStatus, unsubscribeMutation]);
 
+  const sendTest = useCallback(async () => {
+    const result = await testMutation.mutateAsync();
+    return result;
+  }, [testMutation]);
+
   return {
     supported,
     configured: status?.configured ?? false,
@@ -63,7 +70,9 @@ export function useAdminPush() {
     statusLoading,
     enable,
     disable,
+    sendTest,
     isEnabling: subscribeMutation.isPending,
     isDisabling: unsubscribeMutation.isPending,
+    isTesting: testMutation.isPending,
   };
 }

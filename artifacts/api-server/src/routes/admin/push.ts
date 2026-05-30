@@ -6,6 +6,7 @@ import {
   isPushConfigured,
   removeAdminPushSubscription,
   saveAdminPushSubscription,
+  sendAdminPushTest,
   type PushSubscriptionInput,
 } from "../../lib/admin-push";
 
@@ -87,6 +88,36 @@ router.post("/admin/push/unsubscribe", requireAdmin, async (req, res): Promise<v
 
   await removeAdminPushSubscription(endpoint);
   res.json({ message: "Notifications désactivées sur cet appareil" });
+});
+
+router.post("/admin/push/test", requireAdmin, async (req, res): Promise<void> => {
+  if (!isPushConfigured()) {
+    res.status(503).json({ error: "Notifications push non configurées sur le serveur (VAPID)" });
+    return;
+  }
+
+  try {
+    const result = await sendAdminPushTest(req.admin!.email);
+    res.json({
+      message:
+        result.sent > 0
+          ? `Notification test envoyée à ${result.sent} appareil${result.sent > 1 ? "s" : ""}.`
+          : "Aucune notification n'a pu être délivrée.",
+      sent: result.sent,
+      failed: result.failed,
+      deviceCount: result.deviceCount,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "NO_SUBSCRIPTION") {
+      res.status(400).json({
+        error:
+          "Aucun appareil enregistré. Activez d'abord les notifications sur cet appareil, puis réessayez.",
+      });
+      return;
+    }
+
+    res.status(500).json({ error: "Impossible d'envoyer la notification test" });
+  }
 });
 
 export default router;

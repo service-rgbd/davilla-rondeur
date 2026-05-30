@@ -32,6 +32,7 @@ import type {
   AdminOrderSummary,
   AdminPushStatus,
   AdminPushSubscriptionInput,
+  AdminPushTestResponse,
   AdminPushUnsubscribeInput,
   AdminPushVapidKey,
   AdminTwoFactorSetupResponse,
@@ -2680,6 +2681,76 @@ export const useAdminUnsubscribePush = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminUnsubscribePushMutationOptions(options));
+    }
+
+export const getAdminSendPushTestUrl = () => {
+
+
+
+
+  return `/api/admin/push/test`
+}
+
+/**
+ * @summary Send a test Web Push notification to admin devices
+ */
+export const adminSendPushTest = async ( options?: RequestInit): Promise<AdminPushTestResponse> => {
+
+  return customFetch<AdminPushTestResponse>(getAdminSendPushTestUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminSendPushTestMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext> => {
+
+const mutationKey = ['adminSendPushTest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSendPushTest>>, void> = () => {
+
+
+          return  adminSendPushTest(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSendPushTestMutationResult = NonNullable<Awaited<ReturnType<typeof adminSendPushTest>>>
+
+    export type AdminSendPushTestMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Send a test Web Push notification to admin devices
+ */
+export const useAdminSendPushTest = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSendPushTest>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminSendPushTestMutationOptions(options));
     }
 
 export const getSubscribeNewsletterUrl = () => {

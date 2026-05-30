@@ -742,6 +742,17 @@ export const AdminUnsubscribePushResponse = zod.object({
 
 
 /**
+ * @summary Send a test Web Push notification to admin devices
+ */
+export const AdminSendPushTestResponse = zod.object({
+  "message": zod.string(),
+  "sent": zod.number(),
+  "failed": zod.number(),
+  "deviceCount": zod.number()
+})
+
+
+/**
  * @summary Subscribe to newsletter
  */
 export const SubscribeNewsletterBody = zod.object({

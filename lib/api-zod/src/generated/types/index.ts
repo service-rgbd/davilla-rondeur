@@ -24,6 +24,7 @@ export * from './adminOrderSummaryStatus';
 export * from './adminPushStatus';
 export * from './adminPushSubscriptionInput';
 export * from './adminPushSubscriptionKeys';
+export * from './adminPushTestResponse';
 export * from './adminPushUnsubscribeInput';
 export * from './adminPushVapidKey';
 export * from './adminTwoFactorSetupResponse';

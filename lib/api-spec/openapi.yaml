@@ -945,6 +945,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/push/test:
+    post:
+      operationId: adminSendPushTest
+      tags: [admin]
+      summary: Send a test Web Push notification to admin devices
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Test notification sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPushTestResponse"
+        "400":
+          description: No subscription registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Push not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /newsletter:
     post:
       operationId: subscribeNewsletter
@@ -1334,6 +1367,19 @@ components:
         endpoint:
           type: string
           format: uri
+
+    AdminPushTestResponse:
+      type: object
+      required: [message, sent, failed, deviceCount]
+      properties:
+        message:
+          type: string
+        sent:
+          type: integer
+        failed:
+          type: integer
+        deviceCount:
+          type: integer
 
     AdminChangePasswordInput:
       type: object

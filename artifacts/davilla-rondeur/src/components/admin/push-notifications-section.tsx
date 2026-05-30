@@ -1,4 +1,4 @@
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminPush } from "@/hooks/use-admin-push";
 import { useToast } from "@/hooks/use-toast";
@@ -13,8 +13,10 @@ export function PushNotificationsSection() {
     statusLoading,
     enable,
     disable,
+    sendTest,
     isEnabling,
     isDisabling,
+    isTesting,
   } = useAdminPush();
 
   if (!supported) {
@@ -54,6 +56,23 @@ export function PushNotificationsSection() {
     });
   };
 
+  const handleTest = () => {
+    void sendTest()
+      .then((result) => {
+        toast({
+          title: "Notification test envoyée",
+          description: result.message,
+        });
+      })
+      .catch((error: unknown) => {
+        const apiError = error as { data?: { error?: string }; message?: string };
+        const message =
+          apiError.data?.error ??
+          (error instanceof Error ? error.message : "Impossible d'envoyer le test");
+        toast({ title: "Échec du test", description: message, variant: "destructive" });
+      });
+  };
+
   return (
     <div className="space-y-4">
       {subscribed ? (
@@ -73,6 +92,19 @@ export function PushNotificationsSection() {
             <BellOff className="h-4 w-4 mr-2" />
             {isDisabling ? "Désactivation..." : "Désactiver les notifications"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isTesting}
+            onClick={handleTest}
+            className="rounded-none font-sans uppercase tracking-widest text-xs"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {isTesting ? "Envoi..." : "Envoyer une notification test"}
+          </Button>
+          <p className="font-sans text-xs text-muted-foreground">
+            Vous devriez recevoir une alerte « Test Davilla Rondeur » sur cet appareil dans quelques secondes.
+          </p>
         </>
       ) : (
         <>

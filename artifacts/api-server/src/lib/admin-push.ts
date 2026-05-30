@@ -69,6 +69,107 @@ export async function countAdminPushSubscriptions(adminEmail: string): Promise<n
   return rows.length;
 }
 
+async function getSubscriptionsForAdmin(adminEmail: string) {
+  return db
+    .select()
+    .from(adminPushSubscriptionsTable)
+    .where(eq(adminPushSubscriptionsTable.adminEmail, adminEmail.toLowerCase()));
+}
+
+type PushPayload = {
+  type: string;
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  orderId?: number;
+};
+
+async function sendPushPayload(
+  subscriptions: Array<{
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+  }>,
+  payload: PushPayload,
+): Promise<{ sent: number; failed: number }> {
+  if (!subscriptions.length) {
+    return { sent: 0, failed: 0 };
+  }
+
+  ensureVapidConfigured();
+
+  const body = JSON.stringify(payload);
+  let sent = 0;
+  let failed = 0;
+
+  await Promise.allSettled(
+    subscriptions.map(async (subscription) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh,
+              auth: subscription.auth,
+            },
+          },
+          body,
+        );
+        sent += 1;
+      } catch (error) {
+        failed += 1;
+        const statusCode =
+          error && typeof error === "object" && "statusCode" in error
+            ? Number((error as { statusCode: number }).statusCode)
+            : null;
+
+        if (statusCode === 404 || statusCode === 410) {
+          await removeAdminPushSubscription(subscription.endpoint);
+          logger.info({ endpoint: subscription.endpoint }, "Abonnement push expiré supprimé");
+        } else {
+          logger.warn({ err: error, endpoint: subscription.endpoint }, "Échec envoi push admin");
+        }
+      }
+    }),
+  );
+
+  return { sent, failed };
+}
+
+export async function sendAdminPushTest(adminEmail: string): Promise<{
+  sent: number;
+  failed: number;
+  deviceCount: number;
+}> {
+  if (!isPushConfigured()) {
+    throw new Error("VAPID_NOT_CONFIGURED");
+  }
+
+  const subscriptions = await getSubscriptionsForAdmin(adminEmail);
+  if (!subscriptions.length) {
+    throw new Error("NO_SUBSCRIPTION");
+  }
+
+  const now = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date());
+
+  const result = await sendPushPayload(subscriptions, {
+    type: "PUSH_TEST",
+    title: "Test Davilla Rondeur",
+    body: `Notification test — ${now}. Si vous voyez ceci, les alertes commandes fonctionnent.`,
+    url: "/settings",
+    tag: "push-test",
+  });
+
+  logger.info({ adminEmail, ...result }, "Notification push test envoyée");
+
+  return { ...result, deviceCount: subscriptions.length };
+}
+
 function formatEuro(value: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
 }
@@ -87,7 +188,7 @@ export async function notifyAdminsNewOrder(order: Order, itemCount: number): Pro
   }
 
   const total = parseFloat(order.total);
-  const payload = JSON.stringify({
+  await sendPushPayload(subscriptions, {
     type: "NEW_ORDER",
     orderId: order.id,
     title: `Nouvelle commande #${order.id}`,
@@ -95,34 +196,4 @@ export async function notifyAdminsNewOrder(order: Order, itemCount: number): Pro
     url: `/orders`,
     tag: `order-${order.id}`,
   });
-
-  await Promise.allSettled(
-    subscriptions.map(async (subscription) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: subscription.p256dh,
-              auth: subscription.auth,
-            },
-          },
-          payload,
-        );
-      } catch (error) {
-        const statusCode =
-          error && typeof error === "object" && "statusCode" in error
-            ? Number((error as { statusCode: number }).statusCode)
-            : null;
-
-        if (statusCode === 404 || statusCode === 410) {
-          await removeAdminPushSubscription(subscription.endpoint);
-          logger.info({ endpoint: subscription.endpoint }, "Abonnement push expiré supprimé");
-          return;
-        }
-
-        logger.warn({ err: error, orderId: order.id }, "Échec envoi push admin");
-      }
-    }),
-  );
 }

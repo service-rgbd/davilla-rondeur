@@ -234,6 +234,13 @@ export interface AdminPushUnsubscribeInput {
   endpoint: string;
 }
 
+export interface AdminPushTestResponse {
+  message: string;
+  sent: number;
+  failed: number;
+  deviceCount: number;
+}
+
 export interface AdminChangePasswordInput {
   currentPassword: string;
   /** @minLength 8 */
