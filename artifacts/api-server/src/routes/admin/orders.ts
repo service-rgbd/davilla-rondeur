@@ -1,53 +1,63 @@
 import { Router, type IRouter } from "express";
 import { count, desc, eq } from "drizzle-orm";
-import { db, orderItemsTable, ordersTable } from "@workspace/db";
+import { db, orderItemsTable, ordersTable, type Order } from "@workspace/db";
 import { AdminUpdateOrderBody } from "@workspace/api-zod";
 import { requireAdmin } from "../../lib/auth";
-import { getOrderWithItems, syncMissingOrdersShippingFromStripe, syncOrderShippingFromStripe } from "../../lib/orders";
+import {
+  getOrderWithItems,
+  orderNeedsStripeReconcile,
+  reconcileOrderWithStripe,
+  reconcileOrdersWithStripe,
+} from "../../lib/orders";
 
 const router: IRouter = Router();
 
 const VALID_STATUSES = new Set(["pending", "paid", "shipped", "delivered", "cancelled"]);
-const PAID_STATUSES = new Set(["paid", "shipped", "delivered"]);
+
+function toAdminOrderSummary(
+  order: Order,
+  itemCount: number,
+) {
+  return {
+    id: order.id,
+    email: order.email,
+    status: order.status,
+    total: parseFloat(order.total),
+    subtotal: parseFloat(order.subtotal),
+    shippingAmount: parseFloat(order.shippingAmount),
+    itemCount,
+    createdAt: order.createdAt.toISOString(),
+    paidAt: order.paidAt?.toISOString() ?? null,
+    shippingName: order.shippingName,
+    shippingLine1: order.shippingLine1,
+    shippingLine2: order.shippingLine2,
+    shippingCity: order.shippingCity,
+    shippingPostalCode: order.shippingPostalCode,
+    shippingCountry: order.shippingCountry,
+    shippingPhone: order.shippingPhone,
+  };
+}
+
+async function loadOrders(statusFilter: string) {
+  return statusFilter === "all" || !VALID_STATUSES.has(statusFilter)
+    ? db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
+    : db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.status, statusFilter))
+        .orderBy(desc(ordersTable.createdAt));
+}
 
 router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
   const statusFilter = typeof req.query.status === "string" ? req.query.status : "all";
+  const orders = await loadOrders(statusFilter);
 
-  const orders =
-    statusFilter === "all" || !VALID_STATUSES.has(statusFilter)
-      ? await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
-      : await db
-          .select()
-          .from(ordersTable)
-          .where(eq(ordersTable.status, statusFilter))
-          .orderBy(desc(ordersTable.createdAt));
-
-  const missingShippingIds = orders
-    .filter(
-      (order) =>
-        PAID_STATUSES.has(order.status) &&
-        order.stripeSessionId &&
-        !order.shippingLine1 &&
-        !order.shippingCity &&
-        !order.shippingPostalCode &&
-        !order.shippingCountry,
-    )
-    .map((order) => order.id);
-
-  if (missingShippingIds.length > 0) {
-    await syncMissingOrdersShippingFromStripe(missingShippingIds);
+  const reconcileIds = orders.filter(orderNeedsStripeReconcile).map((order) => order.id);
+  if (reconcileIds.length > 0) {
+    await reconcileOrdersWithStripe(reconcileIds);
   }
 
-  const refreshedOrders =
-    missingShippingIds.length > 0
-      ? statusFilter === "all" || !VALID_STATUSES.has(statusFilter)
-        ? await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
-        : await db
-            .select()
-            .from(ordersTable)
-            .where(eq(ordersTable.status, statusFilter))
-            .orderBy(desc(ordersTable.createdAt))
-      : orders;
+  const refreshedOrders = reconcileIds.length > 0 ? await loadOrders(statusFilter) : orders;
 
   const summaries = await Promise.all(
     refreshedOrders.map(async (order) => {
@@ -56,17 +66,7 @@ router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
         .from(orderItemsTable)
         .where(eq(orderItemsTable.orderId, order.id));
 
-      return {
-        id: order.id,
-        email: order.email,
-        status: order.status,
-        total: parseFloat(order.total),
-        itemCount: items[0]?.count ?? 0,
-        createdAt: order.createdAt.toISOString(),
-        paidAt: order.paidAt?.toISOString() ?? null,
-        shippingCity: order.shippingCity,
-        shippingCountry: order.shippingCountry,
-      };
+      return toAdminOrderSummary(order, items[0]?.count ?? 0);
     }),
   );
 
@@ -74,20 +74,16 @@ router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
 });
 
 router.get("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = Number.parseInt(req.params.id, 10);
+  const id = Number.parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) {
     res.status(400).json({ error: "ID invalide" });
     return;
   }
 
-  let order = await getOrderWithItems(id);
+  const order = await reconcileOrderWithStripe(id);
   if (!order) {
     res.status(404).json({ error: "Commande introuvable" });
     return;
-  }
-
-  if (!order.shippingAddress?.line1 && order.stripeSessionId) {
-    order = (await syncOrderShippingFromStripe(id)) ?? order;
   }
 
   res.json({
@@ -98,7 +94,7 @@ router.get("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> =>
 });
 
 router.patch("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = Number.parseInt(req.params.id, 10);
+  const id = Number.parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) {
     res.status(400).json({ error: "ID invalide" });
     return;

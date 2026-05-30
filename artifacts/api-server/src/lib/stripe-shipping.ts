@@ -35,7 +35,7 @@ function readRecord(value: unknown): Record<string, unknown> | null {
 function readAddress(value: unknown): Stripe.Address | null {
   const record = readRecord(value);
   if (!record || typeof record.line1 !== "string") return null;
-  return record as Stripe.Address;
+  return record as unknown as Stripe.Address;
 }
 
 /** Fallback JSON brut — utile si le SDK Stripe ne mappe pas collected_information. */

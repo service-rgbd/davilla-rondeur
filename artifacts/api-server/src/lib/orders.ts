@@ -44,6 +44,7 @@ export type OrderResponse = {
     city: string | null;
     postalCode: string | null;
     country: string | null;
+    phone: string | null;
   } | null;
   stripeSessionId: string | null;
   createdAt: Date;
@@ -86,6 +87,7 @@ export function formatOrder(order: Order, items: OrderItem[]): OrderResponse {
           city: order.shippingCity,
           postalCode: order.shippingPostalCode,
           country: order.shippingCountry,
+          phone: order.shippingPhone,
         }
       : null,
     stripeSessionId: order.stripeSessionId,
@@ -101,25 +103,6 @@ function orderHasShipping(order: Order): boolean {
       order.shippingPostalCode ||
       order.shippingCountry,
   );
-}
-
-async function applyShippingToOrder(
-  orderId: number,
-  shipping: ExtractedShipping,
-  paymentIntentId?: string | null,
-): Promise<void> {
-  await db
-    .update(ordersTable)
-    .set({
-      shippingName: shipping.name,
-      shippingLine1: shipping.line1,
-      shippingLine2: shipping.line2,
-      shippingCity: shipping.city,
-      shippingPostalCode: shipping.postalCode,
-      shippingCountry: shipping.country,
-      ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
-    })
-    .where(eq(ordersTable.id, orderId));
 }
 
 const CONFIRMATION_EMAIL_SENT = "confirmationEmailSent";
@@ -138,6 +121,147 @@ function shippingFromOrder(order: Order): ExtractedShipping | null {
     postalCode: order.shippingPostalCode,
     country: order.shippingCountry,
   };
+}
+
+export function orderNeedsStripeReconcile(order: Order): boolean {
+  if (!order.stripeSessionId || !isStripeConfigured()) {
+    return false;
+  }
+
+  if (order.status === "pending") {
+    return true;
+  }
+
+  if (!orderIsPaid(order.status)) {
+    return false;
+  }
+
+  return (
+    !orderHasShipping(order) ||
+    !order.stripePaymentIntentId ||
+    !order.paidAt
+  );
+}
+
+type ReconcileOrderOptions = {
+  stripeSession?: Stripe.Checkout.Session;
+  resolvedShipping?: ExtractedShipping | null;
+};
+
+export async function reconcileOrderWithStripe(
+  orderId: number,
+  options: ReconcileOrderOptions = {},
+): Promise<OrderResponse | null> {
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!order) return null;
+
+  if (!order.stripeSessionId || !isStripeConfigured()) {
+    return getOrderWithItems(orderId);
+  }
+
+  const keyMismatch = describeStripeKeyMismatch(order.stripeSessionId);
+  if (keyMismatch) {
+    logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId }, keyMismatch);
+    return getOrderWithItems(orderId);
+  }
+
+  try {
+    const stripe = getStripe();
+    let session = options.stripeSession;
+    let shipping = options.resolvedShipping ?? null;
+
+    if (!session) {
+      const resolved = await resolveShippingFromCheckoutSession(stripe, order.stripeSessionId);
+      session = resolved.session;
+      shipping = shipping ?? resolved.shipping;
+    } else if (!shipping) {
+      shipping = extractShippingFromCheckoutSession(session);
+    }
+
+    const paymentIntentId = getPaymentIntentIdFromSession(session);
+    const sessionPaid = session.payment_status === "paid" && session.status === "complete";
+    const customerEmail = session.customer_details?.email?.trim();
+    const customerPhone = session.customer_details?.phone?.trim() ?? null;
+
+    const patch: Partial<Order> = {};
+
+    if (sessionPaid && order.status === "pending") {
+      patch.status = "paid";
+      patch.paidAt = new Date();
+    } else if (sessionPaid && orderIsPaid(order.status) && !order.paidAt) {
+      patch.paidAt = new Date(session.created * 1000);
+    }
+
+    if (paymentIntentId) {
+      patch.stripePaymentIntentId = paymentIntentId;
+    }
+
+    if (customerEmail && customerEmail !== order.email) {
+      patch.email = customerEmail;
+    }
+
+    if (customerPhone) {
+      patch.shippingPhone = customerPhone;
+    }
+
+    if (shipping?.line1) {
+      patch.shippingName = shipping.name;
+      patch.shippingLine1 = shipping.line1;
+      patch.shippingLine2 = shipping.line2;
+      patch.shippingCity = shipping.city;
+      patch.shippingPostalCode = shipping.postalCode;
+      patch.shippingCountry = shipping.country;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await db.update(ordersTable).set(patch).where(eq(ordersTable.id, orderId));
+    }
+
+    if (order.status === "pending" && sessionPaid && order.sessionId) {
+      await db.delete(cartItemsTable).where(eq(cartItemsTable.sessionId, order.sessionId));
+    }
+
+    const [updated] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+
+    if (updated && orderIsPaid(updated.status)) {
+      await ensureOrderConfirmationEmailSent(orderId);
+    }
+
+    logger.info(
+      {
+        orderId,
+        sessionPaid,
+        hasShipping: Boolean(shipping?.line1 || updated?.shippingLine1),
+      },
+      "Commande synchronisée avec Stripe",
+    );
+
+    return getOrderWithItems(orderId);
+  } catch (error) {
+    const mismatch = describeStripeKeyMismatch(order.stripeSessionId);
+    if (mismatch) {
+      logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId, err: error }, mismatch);
+    } else {
+      logger.error({ err: error, orderId: order.id }, "Échec synchronisation commande Stripe");
+    }
+    return getOrderWithItems(orderId);
+  }
+}
+
+export async function syncOrderShippingFromStripe(orderId: number): Promise<OrderResponse | null> {
+  return reconcileOrderWithStripe(orderId);
+}
+
+export async function reconcileOrdersWithStripe(orderIds: number[]): Promise<void> {
+  const uniqueIds = [...new Set(orderIds)].slice(0, 30);
+  for (const orderId of uniqueIds) {
+    await reconcileOrderWithStripe(orderId);
+  }
+}
+
+/** @deprecated Utiliser reconcileOrdersWithStripe */
+export async function syncMissingOrdersShippingFromStripe(orderIds: number[]): Promise<void> {
+  return reconcileOrdersWithStripe(orderIds);
 }
 
 async function maybeSendOrderConfirmationEmail(
@@ -160,6 +284,7 @@ async function maybeSendOrderConfirmationEmail(
 
   const recipientEmail =
     stripeSession.customer_details?.email?.trim() || order.email.trim();
+  const customerPhone = stripeSession.customer_details?.phone?.trim() ?? null;
 
   const sent = await sendOrderConfirmationEmail({
     orderId: order.id,
@@ -170,7 +295,10 @@ async function maybeSendOrderConfirmationEmail(
       quantity: item.quantity,
       price: parseFloat(item.price),
     })),
-    shippingAddress: shipping?.line1 ? shipping : null,
+    shippingAddress:
+      shipping?.line1 ?
+        { ...shipping, phone: order.shippingPhone ?? customerPhone }
+      : null,
   });
 
   if (!sent) {
@@ -220,19 +348,6 @@ export async function ensureOrderConfirmationEmailSent(orderId: number): Promise
       .where(eq(orderItemsTable.orderId, order.id));
 
     let shipping = shippingFromOrder(order);
-    if (!shipping?.line1) {
-      const synced = await syncOrderShippingFromStripe(order.id);
-      if (synced?.shippingAddress?.line1) {
-        shipping = {
-          name: synced.shippingAddress.name,
-          line1: synced.shippingAddress.line1,
-          line2: synced.shippingAddress.line2,
-          city: synced.shippingAddress.city,
-          postalCode: synced.shippingAddress.postalCode,
-          country: synced.shippingAddress.country,
-        };
-      }
-    }
 
     const sent = await maybeSendOrderConfirmationEmail(order, items, session, shipping);
     if (sent) {
@@ -240,60 +355,6 @@ export async function ensureOrderConfirmationEmailSent(orderId: number): Promise
     }
   } catch (error) {
     logger.error({ err: error, orderId }, "Impossible d'envoyer l'email de confirmation");
-  }
-}
-
-export async function syncOrderShippingFromStripe(orderId: number): Promise<OrderResponse | null> {
-  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
-  if (!order) return null;
-
-  if (orderHasShipping(order) || !order.stripeSessionId || !isStripeConfigured()) {
-    return getOrderWithItems(orderId);
-  }
-
-  const keyMismatch = describeStripeKeyMismatch(order.stripeSessionId);
-  if (keyMismatch) {
-    logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId }, keyMismatch);
-    return getOrderWithItems(orderId);
-  }
-
-  try {
-    const stripe = getStripe();
-    const { session, shipping } = await resolveShippingFromCheckoutSession(stripe, order.stripeSessionId);
-    const paymentIntentId = getPaymentIntentIdFromSession(session);
-
-    if (!shipping?.line1) {
-      logger.warn(
-        { orderId: order.id, stripeSessionId: order.stripeSessionId },
-        "Impossible de récupérer l'adresse Stripe pour cette commande",
-      );
-      if (paymentIntentId && !order.stripePaymentIntentId) {
-        await db
-          .update(ordersTable)
-          .set({ stripePaymentIntentId: paymentIntentId })
-          .where(eq(ordersTable.id, order.id));
-      }
-      return getOrderWithItems(orderId);
-    }
-
-    await applyShippingToOrder(order.id, shipping, paymentIntentId);
-    logger.info({ orderId: order.id }, "Adresse de livraison synchronisée depuis Stripe");
-    return getOrderWithItems(orderId);
-  } catch (error) {
-    const mismatch = describeStripeKeyMismatch(order.stripeSessionId);
-    if (mismatch) {
-      logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId, err: error }, mismatch);
-    } else {
-      logger.error({ err: error, orderId: order.id }, "Échec synchronisation adresse Stripe");
-    }
-    return getOrderWithItems(orderId);
-  }
-}
-
-export async function syncMissingOrdersShippingFromStripe(orderIds: number[]): Promise<void> {
-  const uniqueIds = [...new Set(orderIds)].slice(0, 25);
-  for (const orderId of uniqueIds) {
-    await syncOrderShippingFromStripe(orderId);
   }
 }
 
@@ -313,15 +374,7 @@ export async function getOrderByStripeSessionId(stripeSessionId: string): Promis
 
   if (!order) return null;
 
-  if (!orderHasShipping(order)) {
-    await syncOrderShippingFromStripe(order.id);
-  }
-
-  if (orderIsPaid(order.status)) {
-    await ensureOrderConfirmationEmailSent(order.id);
-  }
-
-  return getOrderWithItems(order.id);
+  return reconcileOrderWithStripe(order.id);
 }
 
 export async function createPendingOrderFromCart(sessionId: string, email: string) {
@@ -396,84 +449,7 @@ export async function fulfillOrderFromStripeSession(
     return null;
   }
 
-  const shipping = resolvedShipping ?? extractShippingFromCheckoutSession(stripeSession);
-  const paymentIntentId = getPaymentIntentIdFromSession(stripeSession);
-
-  if (order.status === "paid") {
-    if (!orderHasShipping(order) && shipping?.line1) {
-      await applyShippingToOrder(order.id, shipping, paymentIntentId);
-      logger.info({ orderId: order.id }, "Adresse de livraison récupérée pour commande déjà payée");
-    }
-    const synced = await syncOrderShippingFromStripe(order.id);
-    const items = await db
-      .select()
-      .from(orderItemsTable)
-      .where(eq(orderItemsTable.orderId, order.id));
-    await maybeSendOrderConfirmationEmail(
-      order,
-      items,
-      stripeSession,
-      synced?.shippingAddress?.line1
-        ? {
-            name: synced.shippingAddress.name,
-            line1: synced.shippingAddress.line1,
-            line2: synced.shippingAddress.line2,
-            city: synced.shippingAddress.city,
-            postalCode: synced.shippingAddress.postalCode,
-            country: synced.shippingAddress.country,
-          }
-        : shipping,
-    );
-    return synced ?? getOrderWithItems(order.id);
-  }
-
-  if (!shipping?.line1) {
-    logger.warn(
-      { orderId: order.id, stripeSessionId: stripeSession.id },
-      "Commande payée sans adresse de livraison Stripe",
-    );
-  }
-
-  await db
-    .update(ordersTable)
-    .set({
-      status: "paid",
-      stripeSessionId: stripeSession.id,
-      stripePaymentIntentId: paymentIntentId,
-      paidAt: new Date(),
-      shippingName: shipping?.name ?? null,
-      shippingLine1: shipping?.line1 ?? null,
-      shippingLine2: shipping?.line2 ?? null,
-      shippingCity: shipping?.city ?? null,
-      shippingPostalCode: shipping?.postalCode ?? null,
-      shippingCountry: shipping?.country ?? null,
-    })
-    .where(eq(ordersTable.id, order.id));
-
-  if (order.sessionId) {
-    await db.delete(cartItemsTable).where(eq(cartItemsTable.sessionId, order.sessionId));
-  }
-
-  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
-
-  const synced = await syncOrderShippingFromStripe(order.id);
-  await maybeSendOrderConfirmationEmail(
-    order,
-    items,
-    stripeSession,
-    synced?.shippingAddress?.line1
-      ? {
-          name: synced.shippingAddress.name,
-          line1: synced.shippingAddress.line1,
-          line2: synced.shippingAddress.line2,
-          city: synced.shippingAddress.city,
-          postalCode: synced.shippingAddress.postalCode,
-          country: synced.shippingAddress.country,
-        }
-      : shipping,
-  );
-
-  return synced ?? getOrderWithItems(order.id);
+  return reconcileOrderWithStripe(orderId, { stripeSession, resolvedShipping });
 }
 
 export async function cancelPendingOrder(orderId: number): Promise<void> {

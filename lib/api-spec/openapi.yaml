@@ -1016,6 +1016,8 @@ components:
           type: ["string", "null"]
         country:
           type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
 
     OrderItem:
       type: object
@@ -1330,6 +1332,10 @@ components:
           enum: [pending, paid, shipped, delivered, cancelled]
         total:
           type: number
+        subtotal:
+          type: number
+        shippingAmount:
+          type: number
         itemCount:
           type: integer
         createdAt:
@@ -1338,9 +1344,19 @@ components:
         paidAt:
           type: ["string", "null"]
           format: date-time
+        shippingName:
+          type: ["string", "null"]
+        shippingLine1:
+          type: ["string", "null"]
+        shippingLine2:
+          type: ["string", "null"]
         shippingCity:
           type: ["string", "null"]
+        shippingPostalCode:
+          type: ["string", "null"]
         shippingCountry:
+          type: ["string", "null"]
+        shippingPhone:
           type: ["string", "null"]
 
     AdminUpdateOrderInput:

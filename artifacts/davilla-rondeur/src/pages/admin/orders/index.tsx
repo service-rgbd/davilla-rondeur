@@ -12,6 +12,7 @@ import {
   OrderStatusBadge,
   ORDER_STATUS_OPTIONS,
 } from "@/components/admin/order-status-badge";
+import { ShippingAddressBlock, ShippingAddressInline } from "@/components/admin/shipping-address-block";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -28,9 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import { Eye, Printer, AlertTriangle } from "lucide-react";
+import { Eye, Printer, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminRoutes } from "@/lib/admin-routes";
+import { formatDateTime, formatEuro, shippingFromSummary } from "@/lib/format-order";
 
 const FILTERS = [
   { value: "all", label: "Toutes" },
@@ -40,20 +42,6 @@ const FILTERS = [
   { value: "delivered", label: "Livrées" },
   { value: "cancelled", label: "Annulées" },
 ] as const;
-
-function formatEuro(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
-}
-
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 function OrderDetailDialog({
   orderId,
@@ -95,7 +83,7 @@ function OrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-none w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="rounded-none w-[calc(100vw-2rem)] max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-sans">
             Commande {orderId ? `#${orderId}` : ""}
@@ -106,9 +94,18 @@ function OrderDetailDialog({
           <div className="h-40 animate-pulse bg-muted" />
         ) : (
           <div className="space-y-6 font-sans text-sm">
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 sm:justify-between">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:justify-between">
               <OrderStatusBadge status={order.status} />
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-none h-10 font-sans text-xs uppercase tracking-widest"
+                  onClick={() => refetch()}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Actualiser Stripe
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -119,90 +116,89 @@ function OrderDetailDialog({
                   Imprimer
                 </Button>
                 <Select value={order.status} onValueChange={handleStatusChange} disabled={updateMutation.isPending}>
-                <SelectTrigger className="w-full sm:w-48 rounded-none h-10">
-                  <SelectValue placeholder="Changer le statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ORDER_STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger className="w-full sm:w-48 rounded-none h-10">
+                    <SelectValue placeholder="Changer le statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORDER_STATUS_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="border border-border p-4">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Client</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <section className="border border-border p-4 space-y-2">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">Client</p>
                 <p className="font-medium">{order.email}</p>
-              </div>
-              <div className="border border-border p-4">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Total</p>
-                <p className="font-medium text-lg">{formatEuro(order.total)}</p>
-              </div>
+                {order.shippingAddress?.phone ? (
+                  <p className="text-muted-foreground">Tél. {order.shippingAddress.phone}</p>
+                ) : null}
+                <p className="text-xs text-muted-foreground pt-1">
+                  Créée le {formatDateTime(order.createdAt)}
+                  {order.paidAt ? ` · Payée le ${formatDateTime(order.paidAt)}` : ""}
+                </p>
+              </section>
+
+              <section className="border border-border p-4 space-y-2">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">Montants</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sous-total</span>
+                    <span>{formatEuro(order.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Livraison</span>
+                    <span>{order.shippingAmount === 0 ? "Offerte" : formatEuro(order.shippingAmount)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
+                    <span>Total TTC</span>
+                    <span>{formatEuro(order.total)}</span>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            {order.shippingAddress?.line1 ? (
-              <div className="border border-border p-4">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Adresse de livraison</p>
-                <p className="font-medium">{order.shippingAddress.name}</p>
-                <p>{order.shippingAddress.line1}</p>
-                {order.shippingAddress.line2 ? <p>{order.shippingAddress.line2}</p> : null}
-                <p>
-                  {order.shippingAddress.postalCode} {order.shippingAddress.city}
-                </p>
-                <p>{order.shippingAddress.country}</p>
-              </div>
-            ) : (
-              <div className="border border-amber-500/40 bg-amber-500/5 p-4 flex gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-200">Adresse non enregistrée</p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    L&apos;adresse n&apos;a pas pu être récupérée depuis Stripe. Vérifiez que
-                    Render utilise la clé live (<code className="text-xs">sk_live_…</code>) pour
-                    les commandes réelles, puis rouvrez cette commande.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-none mt-3"
-                    onClick={() => refetch()}
-                  >
-                    Réessayer depuis Stripe
-                  </Button>
-                </div>
-              </div>
-            )}
+            <section className="border border-border p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
+                Adresse de livraison
+              </p>
+              <ShippingAddressBlock shipping={order.shippingAddress} fallbackEmail={order.email} />
+            </section>
 
-            <div className="border border-border overflow-hidden">
+            <section className="border border-border overflow-hidden">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground px-4 py-3 bg-muted/40 border-b border-border">
+                Articles commandés
+              </p>
               <table className="w-full">
-                <thead className="bg-muted/40">
+                <thead className="bg-muted/20">
                   <tr>
                     <th className="text-left p-3 text-xs uppercase tracking-widest">Produit</th>
                     <th className="text-left p-3 text-xs uppercase tracking-widest">Qté</th>
-                    <th className="text-right p-3 text-xs uppercase tracking-widest">Prix</th>
+                    <th className="text-right p-3 text-xs uppercase tracking-widest">Montant</th>
                   </tr>
                 </thead>
                 <tbody>
                   {order.items.map((item) => (
                     <tr key={item.id} className="border-t border-border">
-                      <td className="p-3">{item.productName}</td>
+                      <td className="p-3">
+                        <p>{item.productName}</p>
+                        {item.size || item.color ? (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {[item.size, item.color].filter(Boolean).join(" · ")}
+                          </p>
+                        ) : null}
+                      </td>
                       <td className="p-3">{item.quantity}</td>
                       <td className="p-3 text-right">{formatEuro(item.price * item.quantity)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Créée le {formatDate(order.createdAt)}</p>
-              {order.paidAt ? <p>Payée le {formatDate(order.paidAt)}</p> : null}
-            </div>
+            </section>
           </div>
         )}
       </DialogContent>
@@ -212,11 +208,11 @@ function OrderDetailDialog({
 
 function OrdersTable({ status }: { status: string }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const { data: orders, isLoading } = useAdminListOrders(
+  const { data: orders, isLoading, isFetching } = useAdminListOrders(
     status === "all" ? {} : { status: status as "pending" | "paid" | "shipped" | "delivered" | "cancelled" },
   );
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return <div className="h-48 animate-pulse bg-muted border border-border" />;
   }
 
@@ -231,77 +227,88 @@ function OrdersTable({ status }: { status: string }) {
   return (
     <>
       <div className="md:hidden space-y-3">
-        {orders.map((order) => (
-          <div key={order.id} className="border border-border p-4 space-y-3 bg-background">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-sans font-semibold">#{order.id}</p>
-                <p className="font-sans text-sm break-all">{order.email}</p>
+        {orders.map((order) => {
+          const shipping = shippingFromSummary(order);
+          return (
+            <div key={order.id} className="border border-border p-4 space-y-3 bg-background">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-sans font-semibold">#{order.id}</p>
+                  <p className="font-sans text-sm break-all">{order.email}</p>
+                </div>
+                <OrderStatusBadge status={order.status} />
               </div>
-              <OrderStatusBadge status={order.status} />
+              <div className="font-sans text-sm space-y-1">
+                <p className="font-medium">{formatEuro(order.total)}</p>
+                <p className="text-muted-foreground text-xs">
+                  <ShippingAddressInline shipping={shipping} />
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {order.paidAt ? `Payée ${formatDateTime(order.paidAt)}` : `Créée ${formatDateTime(order.createdAt)}`}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-none w-full"
+                onClick={() => setSelectedId(order.id)}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Voir le détail
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm text-muted-foreground">
-              <span>{order.itemCount} article{order.itemCount > 1 ? "s" : ""}</span>
-              <span className="font-medium text-foreground">{formatEuro(order.total)}</span>
-              <span>{formatDate(order.createdAt)}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-none w-full"
-              onClick={() => setSelectedId(order.id)}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Voir le détail
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="hidden md:block border border-border overflow-x-auto">
-        <table className="w-full font-sans text-sm">
+        <table className="w-full font-sans text-sm min-w-[960px]">
           <thead className="bg-muted/40 border-b border-border">
             <tr>
               <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">#</th>
               <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Client</th>
+              <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Livraison</th>
               <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Statut</th>
-              <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Articles</th>
               <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Total</th>
-              <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Date</th>
+              <th className="text-left p-4 text-xs uppercase tracking-widest font-medium">Payée le</th>
               <th className="text-right p-4 text-xs uppercase tracking-widest font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
-              <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                <td className="p-4 font-medium">#{order.id}</td>
-                <td className="p-4">
-                  <p>{order.email}</p>
-                  {order.shippingCity ? (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {order.shippingCity}
-                      {order.shippingCountry ? `, ${order.shippingCountry}` : ""}
-                    </p>
-                  ) : null}
-                </td>
-                <td className="p-4">
-                  <OrderStatusBadge status={order.status} />
-                </td>
-                <td className="p-4">{order.itemCount}</td>
-                <td className="p-4 font-medium">{formatEuro(order.total)}</td>
-                <td className="p-4 text-muted-foreground">{formatDate(order.createdAt)}</td>
-                <td className="p-4 text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-none"
-                    onClick={() => setSelectedId(order.id)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {orders.map((order) => {
+              const shipping = shippingFromSummary(order);
+              return (
+                <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20 align-top">
+                  <td className="p-4 font-medium">#{order.id}</td>
+                  <td className="p-4">
+                    <p>{order.email}</p>
+                    {order.shippingPhone ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">{order.shippingPhone}</p>
+                    ) : null}
+                  </td>
+                  <td className="p-4 text-xs text-muted-foreground max-w-xs">
+                    <ShippingAddressInline shipping={shipping} />
+                  </td>
+                  <td className="p-4">
+                    <OrderStatusBadge status={order.status} />
+                  </td>
+                  <td className="p-4 font-medium">{formatEuro(order.total)}</td>
+                  <td className="p-4 text-muted-foreground whitespace-nowrap">
+                    {order.paidAt ? formatDateTime(order.paidAt) : "—"}
+                  </td>
+                  <td className="p-4 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-none"
+                      onClick={() => setSelectedId(order.id)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -318,14 +325,14 @@ function OrdersTable({ status }: { status: string }) {
 }
 
 export default function AdminOrders() {
-  const [tab, setTab] = useState("all");
+  const [tab, setTab] = useState("paid");
 
   return (
     <AdminLayout>
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Commandes</h1>
         <p className="font-sans text-sm text-muted-foreground mt-1">
-          Suivez les commandes en attente, payées, expédiées et livrées
+          Synchronisées avec Stripe à chaque consultation — montants, adresses et statuts de paiement
         </p>
       </div>
 

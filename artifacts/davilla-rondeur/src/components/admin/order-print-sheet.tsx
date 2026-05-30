@@ -23,6 +23,7 @@ function AddressBlock({
   postalCode,
   city,
   country,
+  phone,
   email,
 }: {
   title: string;
@@ -32,6 +33,7 @@ function AddressBlock({
   postalCode?: string | null;
   city?: string | null;
   country?: string | null;
+  phone?: string | null;
   email?: string | null;
 }) {
   return (
@@ -46,6 +48,7 @@ function AddressBlock({
         </p>
       ) : null}
       {country ? <p>{formatCountry(country)}</p> : null}
+      {phone ? <p>Tél. {phone}</p> : null}
       {email ? <p className="order-print-muted">{email}</p> : null}
     </section>
   );
@@ -88,6 +91,7 @@ export function OrderPrintSheet({ order }: { order: Order }) {
             postalCode={order.shippingAddress?.postalCode}
             city={order.shippingAddress?.city}
             country={order.shippingAddress?.country}
+            phone={order.shippingAddress?.phone}
             email={order.email}
           />
         ) : (

@@ -13,6 +13,7 @@ type OrderEmailPayload = {
     city: string | null;
     postalCode: string | null;
     country: string | null;
+    phone?: string | null;
   } | null;
 };
 
@@ -56,6 +57,7 @@ export async function sendOrderConfirmationEmail(payload: OrderEmailPayload): Pr
         ${shipping.line2 ? `<p style="margin:0">${shipping.line2}</p>` : ""}
         <p style="margin:0">${[shipping.postalCode, shipping.city].filter(Boolean).join(" ")}</p>
         ${shipping.country ? `<p style="margin:0">${shipping.country}</p>` : ""}
+        ${shipping.phone ? `<p style="margin:0">Tél. ${shipping.phone}</p>` : ""}
       </div>`
     : "";
 
@@ -104,6 +106,7 @@ export async function sendOrderConfirmationEmail(payload: OrderEmailPayload): Pr
             shipping.line2 ?? "",
             `${shipping.postalCode ?? ""} ${shipping.city ?? ""}`.trim(),
             shipping.country ?? "",
+            shipping.phone ? `Tél. ${shipping.phone}` : "",
           ]
             .filter(Boolean)
             .join("\n")

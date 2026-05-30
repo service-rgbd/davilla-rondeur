@@ -1,9 +1,11 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { StatCard } from "@/components/admin/stat-card";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
+import { ShippingAddressInline } from "@/components/admin/shipping-address-block";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminGetDashboardStats } from "@workspace/api-client-react";
 import { adminRoutes } from "@/lib/admin-routes";
+import { formatDateTime, formatEuro, shippingFromSummary } from "@/lib/format-order";
 import { Euro, ShoppingBag, Users, Clock } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -35,19 +37,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Annulées",
 };
 
-function formatEuro(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
-}
-
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
 export default function AdminDashboard() {
   const { data, isLoading } = useAdminGetDashboardStats();
 
@@ -69,7 +58,7 @@ export default function AdminDashboard() {
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Tableau de bord</h1>
         <p className="font-sans text-sm text-muted-foreground mt-1">
-          Vue d&apos;ensemble de l&apos;activité Davilla Rondeur
+          Données synchronisées avec Stripe — revenus, commandes récentes et adresses de livraison
         </p>
       </div>
 
@@ -213,53 +202,58 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="md:hidden space-y-3">
-                {data.recentOrders.map((order) => (
-                  <div key={order.id} className="border border-border p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-sans font-semibold">#{order.id}</p>
-                      <OrderStatusBadge status={order.status} />
-                    </div>
-                    <p className="font-sans text-sm break-all">{order.email}</p>
-                    <div className="flex justify-between font-sans text-sm text-muted-foreground">
-                      <span>{formatEuro(order.total)}</span>
-                      <span>{formatDate(order.createdAt)}</span>
-                    </div>
-                  </div>
-                ))}
+                {data.recentOrders.map((order) => {
+                  const shipping = shippingFromSummary(order);
+                  return (
+                    <Link key={order.id} href={adminRoutes.orders} className="block border border-border p-4 space-y-2 hover:bg-muted/20">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-sans font-semibold">#{order.id}</p>
+                        <OrderStatusBadge status={order.status} />
+                      </div>
+                      <p className="font-sans text-sm break-all">{order.email}</p>
+                      <p className="font-sans text-sm font-medium">{formatEuro(order.total)}</p>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        <ShippingAddressInline shipping={shipping} />
+                      </p>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        {order.paidAt ? `Payée ${formatDateTime(order.paidAt)}` : formatDateTime(order.createdAt)}
+                      </p>
+                    </Link>
+                  );
+                })}
               </div>
               <div className="hidden md:block overflow-x-auto">
-              <table className="w-full font-sans text-sm min-w-[640px]">
+              <table className="w-full font-sans text-sm min-w-[760px]">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                      #
-                    </th>
-                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                      Client
-                    </th>
-                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                      Statut
-                    </th>
-                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                      Total
-                    </th>
-                    <th className="pb-3 text-xs uppercase tracking-widest text-muted-foreground font-medium">
-                      Date
-                    </th>
+                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">#</th>
+                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">Client</th>
+                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">Livraison</th>
+                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">Statut</th>
+                    <th className="pb-3 pr-4 text-xs uppercase tracking-widest text-muted-foreground font-medium">Total</th>
+                    <th className="pb-3 text-xs uppercase tracking-widest text-muted-foreground font-medium">Payée le</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border last:border-0">
-                      <td className="py-3 pr-4 font-medium">#{order.id}</td>
-                      <td className="py-3 pr-4">{order.email}</td>
-                      <td className="py-3 pr-4">
-                        <OrderStatusBadge status={order.status} />
-                      </td>
-                      <td className="py-3 pr-4">{formatEuro(order.total)}</td>
-                      <td className="py-3 text-muted-foreground">{formatDate(order.createdAt)}</td>
-                    </tr>
-                  ))}
+                  {data.recentOrders.map((order) => {
+                    const shipping = shippingFromSummary(order);
+                    return (
+                      <tr key={order.id} className="border-b border-border last:border-0 align-top">
+                        <td className="py-3 pr-4 font-medium">#{order.id}</td>
+                        <td className="py-3 pr-4">{order.email}</td>
+                        <td className="py-3 pr-4 text-xs text-muted-foreground max-w-xs">
+                          <ShippingAddressInline shipping={shipping} />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <OrderStatusBadge status={order.status} />
+                        </td>
+                        <td className="py-3 pr-4">{formatEuro(order.total)}</td>
+                        <td className="py-3 text-muted-foreground whitespace-nowrap">
+                          {order.paidAt ? formatDateTime(order.paidAt) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               </div>

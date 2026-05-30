@@ -104,6 +104,8 @@ export interface ShippingAddress {
   postalCode?: string | null;
   /** @nullable */
   country?: string | null;
+  /** @nullable */
+  phone?: string | null;
 }
 
 export interface OrderItem {
@@ -290,14 +292,26 @@ export interface AdminOrderSummary {
   email: string;
   status: AdminOrderSummaryStatus;
   total: number;
+  subtotal?: number;
+  shippingAmount?: number;
   itemCount: number;
   createdAt: string;
   /** @nullable */
   paidAt?: string | null;
   /** @nullable */
+  shippingName?: string | null;
+  /** @nullable */
+  shippingLine1?: string | null;
+  /** @nullable */
+  shippingLine2?: string | null;
+  /** @nullable */
   shippingCity?: string | null;
   /** @nullable */
+  shippingPostalCode?: string | null;
+  /** @nullable */
   shippingCountry?: string | null;
+  /** @nullable */
+  shippingPhone?: string | null;
 }
 
 export interface AdminDashboardStats {

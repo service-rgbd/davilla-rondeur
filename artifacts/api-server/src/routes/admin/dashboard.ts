@@ -2,15 +2,21 @@ import { Router, type IRouter } from "express";
 import { count, desc, eq } from "drizzle-orm";
 import { db, newsletterSubscribersTable, orderItemsTable, ordersTable } from "@workspace/db";
 import { requireAdmin } from "../../lib/auth";
-import { getOrderWithItems } from "../../lib/orders";
+import { orderNeedsStripeReconcile, reconcileOrdersWithStripe } from "../../lib/orders";
 
 const router: IRouter = Router();
 
 const PAID_STATUSES = ["paid", "shipped", "delivered"] as const;
 
 router.get("/admin/dashboard/stats", requireAdmin, async (_req, res): Promise<void> => {
-  const allOrders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
+  let allOrders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
   const subscribers = await db.select({ count: count() }).from(newsletterSubscribersTable);
+
+  const reconcileIds = allOrders.filter(orderNeedsStripeReconcile).map((order) => order.id);
+  if (reconcileIds.length > 0) {
+    await reconcileOrdersWithStripe(reconcileIds.slice(0, 30));
+    allOrders = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt));
+  }
 
   const ordersByStatus: Record<string, number> = {
     pending: 0,
@@ -53,11 +59,18 @@ router.get("/admin/dashboard/stats", requireAdmin, async (_req, res): Promise<vo
         email: order.email,
         status: order.status,
         total: parseFloat(order.total),
+        subtotal: parseFloat(order.subtotal),
+        shippingAmount: parseFloat(order.shippingAmount),
         itemCount: items[0]?.count ?? 0,
         createdAt: order.createdAt.toISOString(),
         paidAt: order.paidAt?.toISOString() ?? null,
+        shippingName: order.shippingName,
+        shippingLine1: order.shippingLine1,
+        shippingLine2: order.shippingLine2,
         shippingCity: order.shippingCity,
+        shippingPostalCode: order.shippingPostalCode,
         shippingCountry: order.shippingCountry,
+        shippingPhone: order.shippingPhone,
       };
     }),
   );
