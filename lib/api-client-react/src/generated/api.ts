@@ -27,11 +27,13 @@ import type {
   AdminDashboardStats,
   AdminDisableTwoFactorInput,
   AdminEnableTwoFactorInput,
+  AdminGetPushStatusParams,
   AdminListOrdersParams,
   AdminLoginInput,
   AdminOrderSummary,
   AdminPushStatus,
   AdminPushSubscriptionInput,
+  AdminPushTestInput,
   AdminPushTestResponse,
   AdminPushUnsubscribeInput,
   AdminPushVapidKey,
@@ -2464,20 +2466,27 @@ export function useAdminGetPushVapidKey<TData = Awaited<ReturnType<typeof adminG
 
 
 
-export const getAdminGetPushStatusUrl = () => {
+export const getAdminGetPushStatusUrl = (params?: AdminGetPushStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/push/status`
+  return stringifiedParams.length > 0 ? `/api/admin/push/status?${stringifiedParams}` : `/api/admin/push/status`
 }
 
 /**
  * @summary Get admin push notification status
  */
-export const adminGetPushStatus = async ( options?: RequestInit): Promise<AdminPushStatus> => {
+export const adminGetPushStatus = async (params?: AdminGetPushStatusParams, options?: RequestInit): Promise<AdminPushStatus> => {
 
-  return customFetch<AdminPushStatus>(getAdminGetPushStatusUrl(),
+  return customFetch<AdminPushStatus>(getAdminGetPushStatusUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2490,23 +2499,23 @@ export const adminGetPushStatus = async ( options?: RequestInit): Promise<AdminP
 
 
 
-export const getAdminGetPushStatusQueryKey = () => {
+export const getAdminGetPushStatusQueryKey = (params?: AdminGetPushStatusParams,) => {
     return [
-    `/api/admin/push/status`
+    `/api/admin/push/status`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getAdminGetPushStatusQueryOptions = <TData = Awaited<ReturnType<typeof adminGetPushStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetPushStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getAdminGetPushStatusQueryOptions = <TData = Awaited<ReturnType<typeof adminGetPushStatus>>, TError = ErrorType<ErrorResponse>>(params?: AdminGetPushStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetPushStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAdminGetPushStatusQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetPushStatusQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetPushStatus>>> = ({ signal }) => adminGetPushStatus({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetPushStatus>>> = ({ signal }) => adminGetPushStatus(params, { signal, ...requestOptions });
 
 
 
@@ -2524,11 +2533,11 @@ export type AdminGetPushStatusQueryError = ErrorType<ErrorResponse>
  */
 
 export function useAdminGetPushStatus<TData = Awaited<ReturnType<typeof adminGetPushStatus>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetPushStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: AdminGetPushStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetPushStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getAdminGetPushStatusQueryOptions(options)
+  const queryOptions = getAdminGetPushStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2694,14 +2703,15 @@ export const getAdminSendPushTestUrl = () => {
 /**
  * @summary Send a test Web Push notification to admin devices
  */
-export const adminSendPushTest = async ( options?: RequestInit): Promise<AdminPushTestResponse> => {
+export const adminSendPushTest = async (adminPushTestInput?: AdminPushTestInput, options?: RequestInit): Promise<AdminPushTestResponse> => {
 
   return customFetch<AdminPushTestResponse>(getAdminSendPushTestUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminPushTestInput,)
   }
 );}
 
@@ -2709,8 +2719,8 @@ export const adminSendPushTest = async ( options?: RequestInit): Promise<AdminPu
 
 
 export const getAdminSendPushTestMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,{data?: BodyType<AdminPushTestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,{data?: BodyType<AdminPushTestInput>}, TContext> => {
 
 const mutationKey = ['adminSendPushTest'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -2722,10 +2732,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSendPushTest>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSendPushTest>>, {data?: BodyType<AdminPushTestInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  adminSendPushTest(requestOptions)
+          return  adminSendPushTest(data,requestOptions)
         }
 
 
@@ -2736,18 +2746,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AdminSendPushTestMutationResult = NonNullable<Awaited<ReturnType<typeof adminSendPushTest>>>
-
+    export type AdminSendPushTestMutationBody = BodyType<AdminPushTestInput> | undefined
     export type AdminSendPushTestMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Send a test Web Push notification to admin devices
  */
 export const useAdminSendPushTest = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSendPushTest>>, TError,{data?: BodyType<AdminPushTestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof adminSendPushTest>>,
         TError,
-        void,
+        {data?: BodyType<AdminPushTestInput>},
         TContext
       > => {
       return useMutation(getAdminSendPushTestMutationOptions(options));

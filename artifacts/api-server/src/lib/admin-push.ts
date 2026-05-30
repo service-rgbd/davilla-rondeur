@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { adminPushSubscriptionsTable, db, type Order } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -37,10 +37,24 @@ export async function saveAdminPushSubscription(
   subscription: PushSubscriptionInput,
   userAgent?: string | null,
 ): Promise<void> {
+  const email = adminEmail.toLowerCase();
+
+  if (userAgent) {
+    await db
+      .delete(adminPushSubscriptionsTable)
+      .where(
+        and(
+          eq(adminPushSubscriptionsTable.adminEmail, email),
+          eq(adminPushSubscriptionsTable.userAgent, userAgent),
+          ne(adminPushSubscriptionsTable.endpoint, subscription.endpoint),
+        ),
+      );
+  }
+
   await db
     .insert(adminPushSubscriptionsTable)
     .values({
-      adminEmail: adminEmail.toLowerCase(),
+      adminEmail: email,
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
@@ -49,7 +63,7 @@ export async function saveAdminPushSubscription(
     .onConflictDoUpdate({
       target: adminPushSubscriptionsTable.endpoint,
       set: {
-        adminEmail: adminEmail.toLowerCase(),
+        adminEmail: email,
         p256dh: subscription.keys.p256dh,
         auth: subscription.keys.auth,
         userAgent: userAgent ?? null,
@@ -69,11 +83,31 @@ export async function countAdminPushSubscriptions(adminEmail: string): Promise<n
   return rows.length;
 }
 
-async function getSubscriptionsForAdmin(adminEmail: string) {
-  return db
+export async function isAdminPushEndpointRegistered(
+  adminEmail: string,
+  endpoint: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: adminPushSubscriptionsTable.id })
+    .from(adminPushSubscriptionsTable)
+    .where(
+      and(
+        eq(adminPushSubscriptionsTable.endpoint, endpoint),
+        eq(adminPushSubscriptionsTable.adminEmail, adminEmail.toLowerCase()),
+      ),
+    );
+  return rows.length > 0;
+}
+
+async function getSubscriptionsForAdmin(adminEmail: string, endpoint?: string) {
+  const email = adminEmail.toLowerCase();
+  const rows = await db
     .select()
     .from(adminPushSubscriptionsTable)
-    .where(eq(adminPushSubscriptionsTable.adminEmail, adminEmail.toLowerCase()));
+    .where(eq(adminPushSubscriptionsTable.adminEmail, email));
+
+  if (!endpoint) return rows;
+  return rows.filter((row) => row.endpoint === endpoint);
 }
 
 type PushPayload = {
@@ -137,7 +171,10 @@ async function sendPushPayload(
   return { sent, failed };
 }
 
-export async function sendAdminPushTest(adminEmail: string): Promise<{
+export async function sendAdminPushTest(
+  adminEmail: string,
+  endpoint?: string,
+): Promise<{
   sent: number;
   failed: number;
   deviceCount: number;
@@ -146,9 +183,9 @@ export async function sendAdminPushTest(adminEmail: string): Promise<{
     throw new Error("VAPID_NOT_CONFIGURED");
   }
 
-  const subscriptions = await getSubscriptionsForAdmin(adminEmail);
+  const subscriptions = await getSubscriptionsForAdmin(adminEmail, endpoint?.trim());
   if (!subscriptions.length) {
-    throw new Error("NO_SUBSCRIPTION");
+    throw new Error(endpoint ? "NO_DEVICE_SUBSCRIPTION" : "NO_SUBSCRIPTION");
   }
 
   const now = new Intl.DateTimeFormat("fr-FR", {

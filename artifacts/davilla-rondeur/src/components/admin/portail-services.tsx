@@ -11,7 +11,7 @@ export function PortailServices() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const pushAttempted = useRef(false);
-  const { supported, configured, subscribed, enable } = useAdminPush();
+  const { supported, configured, subscribed, enable, iosNeedsPwa } = useAdminPush();
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return undefined;
@@ -35,6 +35,7 @@ export function PortailServices() {
       !supported ||
       !configured ||
       subscribed ||
+      iosNeedsPwa ||
       Notification.permission !== "granted"
     ) {
       return;
@@ -44,7 +45,7 @@ export function PortailServices() {
     void enable().catch(() => {
       pushAttempted.current = false;
     });
-  }, [configured, enable, subscribed, supported]);
+  }, [configured, enable, iosNeedsPwa, subscribed, supported]);
 
   return <TwoFactorPromptDialog />;
 }

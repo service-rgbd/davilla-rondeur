@@ -3,6 +3,7 @@ import { requireAdmin } from "../../lib/auth";
 import {
   countAdminPushSubscriptions,
   getVapidPublicKey,
+  isAdminPushEndpointRegistered,
   isPushConfigured,
   removeAdminPushSubscription,
   saveAdminPushSubscription,
@@ -50,10 +51,19 @@ router.get("/admin/push/vapid-key", requireAdmin, (_req, res): void => {
 router.get("/admin/push/status", requireAdmin, async (req, res): Promise<void> => {
   const email = req.admin!.email;
   const deviceCount = await countAdminPushSubscriptions(email);
+  const endpoint =
+    typeof req.query.endpoint === "string" && req.query.endpoint.startsWith("http")
+      ? req.query.endpoint
+      : null;
+
+  const subscribedOnThisDevice = endpoint
+    ? await isAdminPushEndpointRegistered(email, endpoint)
+    : false;
 
   res.json({
     configured: isPushConfigured(),
     subscribed: deviceCount > 0,
+    subscribedOnThisDevice,
     deviceCount,
   });
 });
@@ -96,8 +106,10 @@ router.post("/admin/push/test", requireAdmin, async (req, res): Promise<void> =>
     return;
   }
 
+  const endpoint = parseEndpoint(req.body);
+
   try {
-    const result = await sendAdminPushTest(req.admin!.email);
+    const result = await sendAdminPushTest(req.admin!.email, endpoint ?? undefined);
     res.json({
       message:
         result.sent > 0
@@ -112,6 +124,14 @@ router.post("/admin/push/test", requireAdmin, async (req, res): Promise<void> =>
       res.status(400).json({
         error:
           "Aucun appareil enregistré. Activez d'abord les notifications sur cet appareil, puis réessayez.",
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === "NO_DEVICE_SUBSCRIPTION") {
+      res.status(400).json({
+        error:
+          "Cet appareil n'est pas enregistré. Activez les notifications ici, ou testez depuis l'appareil déjà abonné.",
       });
       return;
     }

@@ -859,6 +859,14 @@ paths:
       summary: Get admin push notification status
       security:
         - adminBearer: []
+      parameters:
+        - name: endpoint
+          in: query
+          required: false
+          description: Push subscription endpoint for this device (optional)
+          schema:
+            type: string
+            format: uri
       responses:
         "200":
           description: Push status
@@ -952,6 +960,12 @@ paths:
       summary: Send a test Web Push notification to admin devices
       security:
         - adminBearer: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPushTestInput"
       responses:
         "200":
           description: Test notification sent
@@ -1332,14 +1346,24 @@ components:
 
     AdminPushStatus:
       type: object
-      required: [configured, subscribed, deviceCount]
+      required: [configured, subscribed, subscribedOnThisDevice, deviceCount]
       properties:
         configured:
           type: boolean
         subscribed:
           type: boolean
+        subscribedOnThisDevice:
+          type: boolean
         deviceCount:
           type: integer
+
+    AdminPushTestInput:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: Limit the test to this device subscription endpoint
 
     AdminPushSubscriptionKeys:
       type: object

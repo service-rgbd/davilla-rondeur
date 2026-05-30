@@ -9,6 +9,20 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+function subscriptionUsesPublicKey(subscription: PushSubscription, publicKey: string): boolean {
+  const existingKey = subscription.options?.applicationServerKey;
+  if (!existingKey) return false;
+
+  const expected = urlBase64ToUint8Array(publicKey);
+  const actual =
+    existingKey instanceof Uint8Array
+      ? existingKey
+      : new Uint8Array(existingKey instanceof ArrayBuffer ? existingKey : existingKey.buffer);
+
+  if (actual.length !== expected.length) return false;
+  return expected.every((byte, index) => actual[index] === byte);
+}
+
 export function isPushSupported(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -16,6 +30,22 @@ export function isPushSupported(): boolean {
     "PushManager" in window &&
     "Notification" in window
   );
+}
+
+export function isIosDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+export function isStandalonePwa(): boolean {
+  if (typeof window === "undefined") return false;
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+}
+
+/** Sur iOS, les push Web ne fonctionnent que via l'app installée (écran d'accueil). */
+export function needsIosPwaInstall(): boolean {
+  return isIosDevice() && !isStandalonePwa();
 }
 
 export async function getPortailServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
@@ -41,7 +71,13 @@ export async function subscribeToAdminPush(publicKey: string): Promise<PushSubsc
   }
 
   const existing = await registration.pushManager.getSubscription();
-  if (existing) return existing;
+  if (existing && subscriptionUsesPublicKey(existing, publicKey)) {
+    return existing;
+  }
+
+  if (existing) {
+    await existing.unsubscribe();
+  }
 
   return registration.pushManager.subscribe({
     userVisibleOnly: true,

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type Stripe from "stripe";
 import {
   db,
@@ -266,9 +266,28 @@ export async function syncOrderShippingFromStripe(orderId: number): Promise<Orde
 
 export async function reconcileOrdersWithStripe(orderIds: number[]): Promise<void> {
   const uniqueIds = [...new Set(orderIds)].slice(0, 30);
-  for (const orderId of uniqueIds) {
-    await reconcileOrderWithStripe(orderId);
-  }
+  await Promise.all(uniqueIds.map((orderId) => reconcileOrderWithStripe(orderId)));
+}
+
+export async function reconcileRecentPendingOrders(limit = 5): Promise<void> {
+  if (!isStripeConfigured()) return;
+
+  const pending = await db
+    .select({ id: ordersTable.id })
+    .from(ordersTable)
+    .where(and(eq(ordersTable.status, "pending"), isNotNull(ordersTable.stripeSessionId)))
+    .orderBy(desc(ordersTable.createdAt))
+    .limit(limit);
+
+  if (pending.length === 0) return;
+  await reconcileOrdersWithStripe(pending.map((row) => row.id));
+}
+
+/** Réconciliation Stripe non bloquante (tableau de bord, liste « toutes »). */
+export function scheduleRecentPendingReconcile(limit = 5): void {
+  void reconcileRecentPendingOrders(limit).catch((error) => {
+    logger.warn({ err: error }, "Réconciliation Stripe en arrière-plan échouée");
+  });
 }
 
 /** @deprecated Utiliser reconcileOrdersWithStripe */

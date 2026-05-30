@@ -59,21 +59,22 @@ if [ ! -d "$ASSETS_DIR" ] || [ ! -f "$ASSETS_DIR/index.html" ]; then
 fi
 
 if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-  echo "" >&2
-  echo "Erreur: CLOUDFLARE_API_TOKEN manquant." >&2
-  echo "" >&2
-  echo "  Les clés R2 (R2_ACCESS_KEY_ID) ne servent PAS au déploiement Workers." >&2
-  echo "  Créez un token API Cloudflare :" >&2
-  echo "    Dashboard → Mon profil → API Tokens → Create Token" >&2
-  echo "    Modèle « Edit Cloudflare Workers » (Workers Scripts: Edit)" >&2
-  echo "" >&2
-  echo "  Ajoutez dans env.local à la racine du projet :" >&2
-  echo "    CLOUDFLARE_API_TOKEN=votre_token" >&2
-  echo "    CLOUDFLARE_ACCOUNT_ID=482f6d7406a79ec809079a667674fbdc" >&2
-  echo "" >&2
-  echo "  Ou connectez-vous une fois : npx wrangler login" >&2
-  echo "" >&2
-  exit 1
+  if ! pnpm exec wrangler whoami >/dev/null 2>&1; then
+    echo "" >&2
+    echo "Erreur: non authentifié sur Cloudflare." >&2
+    echo "" >&2
+    echo "  Option A — connexion OAuth (recommandé) :" >&2
+    echo "    nvm use 22 && npx wrangler login" >&2
+    echo "" >&2
+    echo "  Option B — token API dans env.local (≠ clés R2) :" >&2
+    echo "    CLOUDFLARE_API_TOKEN=..." >&2
+    echo "    CLOUDFLARE_ACCOUNT_ID=482f6d7406a79ec809079a667674fbdc" >&2
+    echo "" >&2
+    exit 1
+  fi
+  echo "Auth Cloudflare : session wrangler (OAuth)"
+else
+  echo "Auth Cloudflare : CLOUDFLARE_API_TOKEN"
 fi
 
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-482f6d7406a79ec809079a667674fbdc}"

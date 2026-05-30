@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AdminPushStatus {
-  configured: boolean;
-  subscribed: boolean;
-  subscribedOnThisDevice: boolean;
-  deviceCount: number;
+export interface AdminPushTestInput {
+  /** Limit the test to this device subscription endpoint */
+  endpoint?: string;
 }

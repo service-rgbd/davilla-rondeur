@@ -53,22 +53,21 @@ export default function AdminDashboard() {
     (data?.ordersByStatus.shipped ?? 0) +
     (data?.ordersByStatus.delivered ?? 0);
 
+  const showSkeleton = isLoading && !data;
+
   return (
     <AdminLayout>
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Tableau de bord</h1>
-        <p className="font-sans text-sm text-muted-foreground mt-1">
-          Données synchronisées avec Stripe — revenus, commandes récentes et adresses de livraison
-        </p>
       </div>
 
-      {isLoading || !data ? (
+      {showSkeleton ? (
         <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="min-w-[240px] snap-start h-32 animate-pulse bg-muted border border-border shrink-0" />
           ))}
         </div>
-      ) : (
+      ) : data ? (
         <>
           <div className="flex gap-4 overflow-x-auto pb-2 mb-8 snap-x snap-mandatory scrollbar-thin">
             <div className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
@@ -260,7 +259,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </>
-      )}
+      ) : null}
     </AdminLayout>
   );
 }

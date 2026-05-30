@@ -7,9 +7,9 @@ export function PushNotificationsSection() {
   const { toast } = useToast();
   const {
     supported,
+    iosNeedsPwa,
     configured,
     subscribed,
-    deviceCount,
     statusLoading,
     enable,
     disable,
@@ -22,19 +22,19 @@ export function PushNotificationsSection() {
   if (!supported) {
     return (
       <p className="font-sans text-sm text-muted-foreground">
-        Les notifications push ne sont pas supportées sur ce navigateur.
+        Non supporté sur ce navigateur.
       </p>
     );
   }
 
   if (statusLoading) {
-    return <div className="h-16 animate-pulse bg-muted border border-border" />;
+    return <div className="h-10 animate-pulse bg-muted border border-border" />;
   }
 
   if (!configured) {
     return (
       <p className="font-sans text-sm text-muted-foreground">
-        Les notifications push ne sont pas encore configurées sur le serveur (clés VAPID sur Render).
+        Non configuré sur le serveur.
       </p>
     );
   }
@@ -42,10 +42,7 @@ export function PushNotificationsSection() {
   const handleEnable = () => {
     void enable()
       .then(() => {
-        toast({
-          title: "Notifications activées",
-          description: "Vous serez alerté à chaque nouvelle commande payée.",
-        });
+        toast({ title: "Notifications activées" });
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : "Impossible d'activer les notifications";
@@ -56,7 +53,7 @@ export function PushNotificationsSection() {
   const handleDisable = () => {
     void disable()
       .then(() => {
-        toast({ title: "Notifications désactivées sur cet appareil" });
+        toast({ title: "Notifications désactivées" });
       })
       .catch(() => {
         toast({ title: "Erreur", description: "Impossible de désactiver les notifications", variant: "destructive" });
@@ -64,16 +61,12 @@ export function PushNotificationsSection() {
   };
 
   const handleTest = () => {
-    void (async () => {
-      if (!subscribed) {
-        await enable();
-      }
-      return sendTest();
-    })()
+    void sendTest()
       .then((result) => {
         toast({
-          title: "Notification test envoyée",
+          title: result.sent > 0 ? "Notification test envoyée" : "Notification non reçue",
           description: result.message,
+          variant: result.sent > 0 ? "default" : "destructive",
         });
       })
       .catch((error: unknown) => {
@@ -88,60 +81,40 @@ export function PushNotificationsSection() {
   const busy = isEnabling || isDisabling || isTesting;
 
   return (
-    <div className="space-y-4">
-      {subscribed ? (
-        <p className="font-sans text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-3 flex items-center gap-2">
-          <Bell className="h-4 w-4 shrink-0" />
-          Notifications actives sur cet appareil
-          {deviceCount > 1 ? ` (${deviceCount} appareils au total)` : ""}
-        </p>
-      ) : (
-        <p className="font-sans text-sm text-muted-foreground">
-          Recevez une alerte push lorsqu&apos;une commande est payée. Installez le portail sur
-          l&apos;écran d&apos;accueil (PWA) pour une meilleure expérience mobile.
-        </p>
-      )}
-
-      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-        {!subscribed ? (
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={handleEnable}
-            className="rounded-none font-sans uppercase tracking-widest text-xs"
-          >
-            <Bell className="h-4 w-4 mr-2" />
-            {isEnabling ? "Activation..." : "Activer les notifications"}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={handleDisable}
-            className="rounded-none font-sans uppercase tracking-widest text-xs"
-          >
-            <BellOff className="h-4 w-4 mr-2" />
-            {isDisabling ? "Désactivation..." : "Désactiver"}
-          </Button>
-        )}
-
+    <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+      {!subscribed ? (
         <Button
           type="button"
-          variant={subscribed ? "default" : "outline"}
-          disabled={busy}
-          onClick={handleTest}
+          disabled={busy || iosNeedsPwa}
+          onClick={handleEnable}
           className="rounded-none font-sans uppercase tracking-widest text-xs"
         >
-          <Send className="h-4 w-4 mr-2" />
-          {isTesting ? "Envoi..." : "Tester la notification"}
+          <Bell className="h-4 w-4 mr-2" />
+          {isEnabling ? "Activation..." : "Activer les notifications"}
         </Button>
-      </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={handleDisable}
+          className="rounded-none font-sans uppercase tracking-widest text-xs"
+        >
+          <BellOff className="h-4 w-4 mr-2" />
+          {isDisabling ? "Désactivation..." : "Désactiver"}
+        </Button>
+      )}
 
-      <p className="font-sans text-xs text-muted-foreground">
-        Le test envoie une alerte « Test Davilla Rondeur » sur cet appareil. Autorisez les
-        notifications si le navigateur le demande.
-      </p>
+      <Button
+        type="button"
+        variant={subscribed ? "default" : "outline"}
+        disabled={busy || iosNeedsPwa}
+        onClick={handleTest}
+        className="rounded-none font-sans uppercase tracking-widest text-xs"
+      >
+        <Send className="h-4 w-4 mr-2" />
+        {isTesting ? "Envoi..." : "Tester la notification"}
+      </Button>
     </div>
   );
 }

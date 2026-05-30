@@ -122,9 +122,6 @@ export default function AdminSettings() {
     <AdminLayout>
       <div className="mb-8 sm:mb-10">
         <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-tight">Paramètres</h1>
-        <p className="font-sans text-sm text-muted-foreground mt-1">
-          Gérez la sécurité de votre accès administrateur
-        </p>
       </div>
 
       <div className="max-w-xl space-y-12">
@@ -136,12 +133,9 @@ export default function AdminSettings() {
         </section>
 
         <section id="securite" className="border-t border-border pt-10 scroll-mt-24">
-          <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-2">
+          <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-6">
             Double authentification (2FA)
           </h2>
-          <p className="font-sans text-sm text-muted-foreground mb-6">
-            Protège votre accès avec un code temporaire depuis une application d&apos;authentification.
-          </p>
 
           {twoFactorStatus?.enabled ? (
             <form onSubmit={handleDisableTwoFactor} className="space-y-6">
@@ -236,12 +230,9 @@ export default function AdminSettings() {
         </section>
 
         <section className="border-t border-border pt-10">
-          <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-2">
+          <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-6">
             Notifications push
           </h2>
-          <p className="font-sans text-sm text-muted-foreground mb-6">
-            Alertes en temps réel lorsqu&apos;une commande est payée (PWA).
-          </p>
           <PushNotificationsSection />
         </section>
 

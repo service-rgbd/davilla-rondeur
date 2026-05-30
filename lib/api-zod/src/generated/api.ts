@@ -710,9 +710,14 @@ export const AdminGetPushVapidKeyResponse = zod.object({
 /**
  * @summary Get admin push notification status
  */
+export const AdminGetPushStatusQueryParams = zod.object({
+  "endpoint": zod.coerce.string().url().optional().describe('Push subscription endpoint for this device (optional)')
+})
+
 export const AdminGetPushStatusResponse = zod.object({
   "configured": zod.boolean(),
   "subscribed": zod.boolean(),
+  "subscribedOnThisDevice": zod.boolean(),
   "deviceCount": zod.number()
 })
 
@@ -744,6 +749,10 @@ export const AdminUnsubscribePushResponse = zod.object({
 /**
  * @summary Send a test Web Push notification to admin devices
  */
+export const AdminSendPushTestBody = zod.object({
+  "endpoint": zod.string().url().optional().describe('Limit the test to this device subscription endpoint')
+})
+
 export const AdminSendPushTestResponse = zod.object({
   "message": zod.string(),
   "sent": zod.number(),

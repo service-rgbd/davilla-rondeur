@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, inArray } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable, type Order } from "@workspace/db";
 import { AdminUpdateOrderBody } from "@workspace/api-zod";
 import { requireAdmin } from "../../lib/auth";
@@ -7,7 +7,8 @@ import {
   getOrderWithItems,
   orderNeedsStripeReconcile,
   reconcileOrderWithStripe,
-  reconcileOrdersWithStripe,
+  reconcileRecentPendingOrders,
+  scheduleRecentPendingReconcile,
 } from "../../lib/orders";
 
 const router: IRouter = Router();
@@ -50,24 +51,29 @@ async function loadOrders(statusFilter: string) {
 
 router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
   const statusFilter = typeof req.query.status === "string" ? req.query.status : "all";
-  const orders = await loadOrders(statusFilter);
 
-  const reconcileIds = orders.filter(orderNeedsStripeReconcile).map((order) => order.id);
-  if (reconcileIds.length > 0) {
-    await reconcileOrdersWithStripe(reconcileIds);
+  if (statusFilter === "pending") {
+    await reconcileRecentPendingOrders(8);
+  } else if (statusFilter === "all") {
+    scheduleRecentPendingReconcile(5);
   }
 
-  const refreshedOrders = reconcileIds.length > 0 ? await loadOrders(statusFilter) : orders;
+  const orders = await loadOrders(statusFilter);
 
-  const summaries = await Promise.all(
-    refreshedOrders.map(async (order) => {
-      const items = await db
-        .select({ count: count() })
-        .from(orderItemsTable)
-        .where(eq(orderItemsTable.orderId, order.id));
+  const orderIds = orders.map((order) => order.id);
+  const itemCountRows =
+    orderIds.length > 0
+      ? await db
+          .select({ orderId: orderItemsTable.orderId, count: count() })
+          .from(orderItemsTable)
+          .where(inArray(orderItemsTable.orderId, orderIds))
+          .groupBy(orderItemsTable.orderId)
+      : [];
 
-      return toAdminOrderSummary(order, items[0]?.count ?? 0);
-    }),
+  const itemCountByOrderId = new Map(itemCountRows.map((row) => [row.orderId, row.count]));
+
+  const summaries = orders.map((order) =>
+    toAdminOrderSummary(order, itemCountByOrderId.get(order.id) ?? 0),
   );
 
   res.json(summaries);

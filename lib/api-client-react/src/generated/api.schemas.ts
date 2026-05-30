@@ -217,7 +217,13 @@ export interface AdminPushVapidKey {
 export interface AdminPushStatus {
   configured: boolean;
   subscribed: boolean;
+  subscribedOnThisDevice: boolean;
   deviceCount: number;
+}
+
+export interface AdminPushTestInput {
+  /** Limit the test to this device subscription endpoint */
+  endpoint?: string;
 }
 
 export interface AdminPushSubscriptionKeys {
@@ -443,4 +449,11 @@ export const AdminListOrdersStatus = {
   cancelled: 'cancelled',
   all: 'all',
 } as const;
+
+export type AdminGetPushStatusParams = {
+/**
+ * Push subscription endpoint for this device (optional)
+ */
+endpoint?: string;
+};
 
