@@ -1,5 +1,6 @@
 name = "davilla-rondeur-portail"
 compatibility_date = "2024-12-01"
+account_id = "482f6d7406a79ec809079a667674fbdc"
 
 [assets]
 directory = "./dist/portail/public"

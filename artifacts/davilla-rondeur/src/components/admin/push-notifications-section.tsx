@@ -34,30 +34,42 @@ export function PushNotificationsSection() {
   if (!configured) {
     return (
       <p className="font-sans text-sm text-muted-foreground">
-        Les notifications push ne sont pas encore configurées sur le serveur (clés VAPID).
+        Les notifications push ne sont pas encore configurées sur le serveur (clés VAPID sur Render).
       </p>
     );
   }
 
   const handleEnable = () => {
-    void enable().then(() => {
-      toast({ title: "Notifications activées", description: "Vous serez alerté à chaque nouvelle commande payée." });
-    }).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : "Impossible d'activer les notifications";
-      toast({ title: "Erreur", description: message, variant: "destructive" });
-    });
+    void enable()
+      .then(() => {
+        toast({
+          title: "Notifications activées",
+          description: "Vous serez alerté à chaque nouvelle commande payée.",
+        });
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Impossible d'activer les notifications";
+        toast({ title: "Erreur", description: message, variant: "destructive" });
+      });
   };
 
   const handleDisable = () => {
-    void disable().then(() => {
-      toast({ title: "Notifications désactivées sur cet appareil" });
-    }).catch(() => {
-      toast({ title: "Erreur", description: "Impossible de désactiver les notifications", variant: "destructive" });
-    });
+    void disable()
+      .then(() => {
+        toast({ title: "Notifications désactivées sur cet appareil" });
+      })
+      .catch(() => {
+        toast({ title: "Erreur", description: "Impossible de désactiver les notifications", variant: "destructive" });
+      });
   };
 
   const handleTest = () => {
-    void sendTest()
+    void (async () => {
+      if (!subscribed) {
+        await enable();
+      }
+      return sendTest();
+    })()
       .then((result) => {
         toast({
           title: "Notification test envoyée",
@@ -73,56 +85,63 @@ export function PushNotificationsSection() {
       });
   };
 
+  const busy = isEnabling || isDisabling || isTesting;
+
   return (
     <div className="space-y-4">
       {subscribed ? (
-        <>
-          <p className="font-sans text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-3 flex items-center gap-2">
-            <Bell className="h-4 w-4 shrink-0" />
-            Notifications actives sur cet appareil
-            {deviceCount > 1 ? ` (${deviceCount} appareils au total)` : ""}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isDisabling}
-            onClick={handleDisable}
-            className="rounded-none font-sans uppercase tracking-widest text-xs"
-          >
-            <BellOff className="h-4 w-4 mr-2" />
-            {isDisabling ? "Désactivation..." : "Désactiver les notifications"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isTesting}
-            onClick={handleTest}
-            className="rounded-none font-sans uppercase tracking-widest text-xs"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {isTesting ? "Envoi..." : "Envoyer une notification test"}
-          </Button>
-          <p className="font-sans text-xs text-muted-foreground">
-            Vous devriez recevoir une alerte « Test Davilla Rondeur » sur cet appareil dans quelques secondes.
-          </p>
-        </>
+        <p className="font-sans text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-3 flex items-center gap-2">
+          <Bell className="h-4 w-4 shrink-0" />
+          Notifications actives sur cet appareil
+          {deviceCount > 1 ? ` (${deviceCount} appareils au total)` : ""}
+        </p>
       ) : (
-        <>
-          <p className="font-sans text-sm text-muted-foreground">
-            Recevez une alerte push lorsqu&apos;une nouvelle commande est payée. Installez le portail
-            sur votre écran d&apos;accueil (PWA) pour une meilleure expérience mobile.
-          </p>
+        <p className="font-sans text-sm text-muted-foreground">
+          Recevez une alerte push lorsqu&apos;une commande est payée. Installez le portail sur
+          l&apos;écran d&apos;accueil (PWA) pour une meilleure expérience mobile.
+        </p>
+      )}
+
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        {!subscribed ? (
           <Button
             type="button"
-            disabled={isEnabling}
+            disabled={busy}
             onClick={handleEnable}
             className="rounded-none font-sans uppercase tracking-widest text-xs"
           >
             <Bell className="h-4 w-4 mr-2" />
             {isEnabling ? "Activation..." : "Activer les notifications"}
           </Button>
-        </>
-      )}
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={handleDisable}
+            className="rounded-none font-sans uppercase tracking-widest text-xs"
+          >
+            <BellOff className="h-4 w-4 mr-2" />
+            {isDisabling ? "Désactivation..." : "Désactiver"}
+          </Button>
+        )}
+
+        <Button
+          type="button"
+          variant={subscribed ? "default" : "outline"}
+          disabled={busy}
+          onClick={handleTest}
+          className="rounded-none font-sans uppercase tracking-widest text-xs"
+        >
+          <Send className="h-4 w-4 mr-2" />
+          {isTesting ? "Envoi..." : "Tester la notification"}
+        </Button>
+      </div>
+
+      <p className="font-sans text-xs text-muted-foreground">
+        Le test envoie une alerte « Test Davilla Rondeur » sur cet appareil. Autorisez les
+        notifications si le navigateur le demande.
+      </p>
     </div>
   );
 }
