@@ -1,0 +1,96 @@
+import { Bell, BellOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAdminPush } from "@/hooks/use-admin-push";
+import { useToast } from "@/hooks/use-toast";
+
+export function PushNotificationsSection() {
+  const { toast } = useToast();
+  const {
+    supported,
+    configured,
+    subscribed,
+    deviceCount,
+    statusLoading,
+    enable,
+    disable,
+    isEnabling,
+    isDisabling,
+  } = useAdminPush();
+
+  if (!supported) {
+    return (
+      <p className="font-sans text-sm text-muted-foreground">
+        Les notifications push ne sont pas supportées sur ce navigateur.
+      </p>
+    );
+  }
+
+  if (statusLoading) {
+    return <div className="h-16 animate-pulse bg-muted border border-border" />;
+  }
+
+  if (!configured) {
+    return (
+      <p className="font-sans text-sm text-muted-foreground">
+        Les notifications push ne sont pas encore configurées sur le serveur (clés VAPID).
+      </p>
+    );
+  }
+
+  const handleEnable = () => {
+    void enable().then(() => {
+      toast({ title: "Notifications activées", description: "Vous serez alerté à chaque nouvelle commande payée." });
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : "Impossible d'activer les notifications";
+      toast({ title: "Erreur", description: message, variant: "destructive" });
+    });
+  };
+
+  const handleDisable = () => {
+    void disable().then(() => {
+      toast({ title: "Notifications désactivées sur cet appareil" });
+    }).catch(() => {
+      toast({ title: "Erreur", description: "Impossible de désactiver les notifications", variant: "destructive" });
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {subscribed ? (
+        <>
+          <p className="font-sans text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-3 flex items-center gap-2">
+            <Bell className="h-4 w-4 shrink-0" />
+            Notifications actives sur cet appareil
+            {deviceCount > 1 ? ` (${deviceCount} appareils au total)` : ""}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isDisabling}
+            onClick={handleDisable}
+            className="rounded-none font-sans uppercase tracking-widest text-xs"
+          >
+            <BellOff className="h-4 w-4 mr-2" />
+            {isDisabling ? "Désactivation..." : "Désactiver les notifications"}
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="font-sans text-sm text-muted-foreground">
+            Recevez une alerte push lorsqu&apos;une nouvelle commande est payée. Installez le portail
+            sur votre écran d&apos;accueil (PWA) pour une meilleure expérience mobile.
+          </p>
+          <Button
+            type="button"
+            disabled={isEnabling}
+            onClick={handleEnable}
+            className="rounded-none font-sans uppercase tracking-widest text-xs"
+          >
+            <Bell className="h-4 w-4 mr-2" />
+            {isEnabling ? "Activation..." : "Activer les notifications"}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}

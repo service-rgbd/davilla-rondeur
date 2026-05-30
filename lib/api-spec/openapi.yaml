@@ -825,6 +825,126 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/push/vapid-key:
+    get:
+      operationId: adminGetPushVapidKey
+      tags: [admin]
+      summary: Get VAPID public key for Web Push subscription
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: VAPID public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPushVapidKey"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Push not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/push/status:
+    get:
+      operationId: adminGetPushStatus
+      tags: [admin]
+      summary: Get admin push notification status
+      security:
+        - adminBearer: []
+      responses:
+        "200":
+          description: Push status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPushStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/push/subscribe:
+    post:
+      operationId: adminSubscribePush
+      tags: [admin]
+      summary: Register Web Push subscription for admin device
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPushSubscriptionInput"
+      responses:
+        "201":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Push not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/push/unsubscribe:
+    post:
+      operationId: adminUnsubscribePush
+      tags: [admin]
+      summary: Remove Web Push subscription for admin device
+      security:
+        - adminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPushUnsubscribeInput"
+      responses:
+        "200":
+          description: Unsubscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid endpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /newsletter:
     post:
       operationId: subscribeNewsletter
@@ -1167,6 +1287,53 @@ components:
           type: string
           minLength: 6
           maxLength: 6
+
+    AdminPushVapidKey:
+      type: object
+      required: [publicKey, enabled]
+      properties:
+        publicKey:
+          type: string
+        enabled:
+          type: boolean
+
+    AdminPushStatus:
+      type: object
+      required: [configured, subscribed, deviceCount]
+      properties:
+        configured:
+          type: boolean
+        subscribed:
+          type: boolean
+        deviceCount:
+          type: integer
+
+    AdminPushSubscriptionKeys:
+      type: object
+      required: [p256dh, auth]
+      properties:
+        p256dh:
+          type: string
+        auth:
+          type: string
+
+    AdminPushSubscriptionInput:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+          format: uri
+        keys:
+          $ref: "#/components/schemas/AdminPushSubscriptionKeys"
+
+    AdminPushUnsubscribeInput:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+          format: uri
 
     AdminChangePasswordInput:
       type: object

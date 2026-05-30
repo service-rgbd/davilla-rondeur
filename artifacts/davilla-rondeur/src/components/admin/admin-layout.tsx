@@ -15,6 +15,7 @@ import { clearAdminSession, getAdminEmail, isAdminLoggedIn } from "@/lib/admin-a
 import { adminRoutes } from "@/lib/admin-routes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { PortailServices } from "@/components/admin/portail-services";
 
 const NAV_ITEMS = [
   { href: adminRoutes.home, label: "Tableau de bord", icon: LayoutDashboard, exact: true },
@@ -157,6 +158,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
         <main className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl mx-auto w-full min-w-0">{children}</main>
       </div>
+      <PortailServices />
     </div>
   );
 }

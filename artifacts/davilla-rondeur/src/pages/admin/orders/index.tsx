@@ -5,7 +5,6 @@ import {
   useAdminUpdateOrder,
   getAdminListOrdersQueryKey,
   getAdminGetDashboardStatsQueryKey,
-  getAdminGetOrderQueryKey,
 } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import {
@@ -33,6 +32,7 @@ import { Eye, Printer, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminRoutes } from "@/lib/admin-routes";
 import { formatDateTime, formatEuro, shippingFromSummary } from "@/lib/format-order";
+import { PORTAIL_CACHE } from "@/lib/portail-query-client";
 
 const FILTERS = [
   { value: "all", label: "Toutes" },
@@ -57,10 +57,10 @@ function OrderDetailDialog({
   const { data: order, isLoading, refetch, isFetching } = useAdminGetOrder(orderId ?? 0, {
     query: {
       enabled: open && orderId != null,
-      queryKey: getAdminGetOrderQueryKey(orderId ?? 0),
-      staleTime: 0,
-      refetchOnMount: "always",
-    },
+      staleTime: PORTAIL_CACHE.orderDetail,
+      refetchOnMount: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial query options merged by orval
+    } as any,
   });
   const updateMutation = useAdminUpdateOrder();
 
@@ -212,7 +212,9 @@ function OrdersTable({ status }: { status: string }) {
     status === "all" ? {} : { status: status as "pending" | "paid" | "shipped" | "delivered" | "cancelled" },
   );
 
-  if (isLoading || isFetching) {
+  const showLoading = isLoading || (status === "pending" && isFetching && !orders?.length);
+
+  if (showLoading) {
     return <div className="h-48 animate-pulse bg-muted border border-border" />;
   }
 

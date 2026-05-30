@@ -12,12 +12,24 @@ export interface AdminOrderSummary {
   email: string;
   status: AdminOrderSummaryStatus;
   total: number;
+  subtotal?: number;
+  shippingAmount?: number;
   itemCount: number;
   createdAt: Date;
   /** @nullable */
   paidAt?: Date | null;
   /** @nullable */
+  shippingName?: string | null;
+  /** @nullable */
+  shippingLine1?: string | null;
+  /** @nullable */
+  shippingLine2?: string | null;
+  /** @nullable */
   shippingCity?: string | null;
   /** @nullable */
+  shippingPostalCode?: string | null;
+  /** @nullable */
   shippingCountry?: string | null;
+  /** @nullable */
+  shippingPhone?: string | null;
 }

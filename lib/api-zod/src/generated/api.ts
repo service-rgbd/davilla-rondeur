@@ -258,7 +258,8 @@ export const GetOrderByStripeSessionResponse = zod.object({
   "line2": zod.string().nullish(),
   "city": zod.string().nullish(),
   "postalCode": zod.string().nullish(),
-  "country": zod.string().nullish()
+  "country": zod.string().nullish(),
+  "phone": zod.string().nullish()
 }),zod.null()]).optional(),
   "stripeSessionId": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
@@ -500,6 +501,19 @@ export const AdminDeleteProductResponse = zod.object({
 
 
 /**
+ * @summary Upload product image to R2 via API (no browser CORS to bucket)
+ */
+export const AdminUploadImageBody = zod.object({
+  "file": zod.instanceof(File)
+})
+
+export const AdminUploadImageResponse = zod.object({
+  "publicUrl": zod.string().describe('URL publique via R2_PUBLIC_URL (ex. media.davilla-rondeur.fr)'),
+  "key": zod.string()
+})
+
+
+/**
  * @summary Get a presigned URL for R2 image upload
  */
 export const AdminPresignUploadBody = zod.object({
@@ -530,11 +544,18 @@ export const AdminGetDashboardStatsResponse = zod.object({
   "email": zod.string(),
   "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
   "total": zod.number(),
+  "subtotal": zod.number().optional(),
+  "shippingAmount": zod.number().optional(),
   "itemCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "paidAt": zod.coerce.date().nullish(),
+  "shippingName": zod.string().nullish(),
+  "shippingLine1": zod.string().nullish(),
+  "shippingLine2": zod.string().nullish(),
   "shippingCity": zod.string().nullish(),
-  "shippingCountry": zod.string().nullish()
+  "shippingPostalCode": zod.string().nullish(),
+  "shippingCountry": zod.string().nullish(),
+  "shippingPhone": zod.string().nullish()
 }))
 })
 
@@ -551,11 +572,18 @@ export const AdminListOrdersResponseItem = zod.object({
   "email": zod.string(),
   "status": zod.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
   "total": zod.number(),
+  "subtotal": zod.number().optional(),
+  "shippingAmount": zod.number().optional(),
   "itemCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "paidAt": zod.coerce.date().nullish(),
+  "shippingName": zod.string().nullish(),
+  "shippingLine1": zod.string().nullish(),
+  "shippingLine2": zod.string().nullish(),
   "shippingCity": zod.string().nullish(),
-  "shippingCountry": zod.string().nullish()
+  "shippingPostalCode": zod.string().nullish(),
+  "shippingCountry": zod.string().nullish(),
+  "shippingPhone": zod.string().nullish()
 })
 export const AdminListOrdersResponse = zod.array(AdminListOrdersResponseItem)
 
@@ -590,7 +618,8 @@ export const AdminGetOrderResponse = zod.object({
   "line2": zod.string().nullish(),
   "city": zod.string().nullish(),
   "postalCode": zod.string().nullish(),
-  "country": zod.string().nullish()
+  "country": zod.string().nullish(),
+  "phone": zod.string().nullish()
 }),zod.null()]).optional(),
   "stripeSessionId": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
@@ -632,7 +661,8 @@ export const AdminUpdateOrderResponse = zod.object({
   "line2": zod.string().nullish(),
   "city": zod.string().nullish(),
   "postalCode": zod.string().nullish(),
-  "country": zod.string().nullish()
+  "country": zod.string().nullish(),
+  "phone": zod.string().nullish()
 }),zod.null()]).optional(),
   "stripeSessionId": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
@@ -666,6 +696,49 @@ export const AdminListCustomersResponseItem = zod.object({
   "sources": zod.array(zod.enum(['order', 'newsletter']))
 })
 export const AdminListCustomersResponse = zod.array(AdminListCustomersResponseItem)
+
+
+/**
+ * @summary Get VAPID public key for Web Push subscription
+ */
+export const AdminGetPushVapidKeyResponse = zod.object({
+  "publicKey": zod.string(),
+  "enabled": zod.boolean()
+})
+
+
+/**
+ * @summary Get admin push notification status
+ */
+export const AdminGetPushStatusResponse = zod.object({
+  "configured": zod.boolean(),
+  "subscribed": zod.boolean(),
+  "deviceCount": zod.number()
+})
+
+
+/**
+ * @summary Register Web Push subscription for admin device
+ */
+export const AdminSubscribePushBody = zod.object({
+  "endpoint": zod.string().url(),
+  "keys": zod.object({
+  "p256dh": zod.string(),
+  "auth": zod.string()
+})
+})
+
+
+/**
+ * @summary Remove Web Push subscription for admin device
+ */
+export const AdminUnsubscribePushBody = zod.object({
+  "endpoint": zod.string().url()
+})
+
+export const AdminUnsubscribePushResponse = zod.object({
+  "message": zod.string()
+})
 
 
 /**

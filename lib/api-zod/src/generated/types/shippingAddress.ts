@@ -19,4 +19,6 @@ export interface ShippingAddress {
   postalCode?: string | null;
   /** @nullable */
   country?: string | null;
+  /** @nullable */
+  phone?: string | null;
 }

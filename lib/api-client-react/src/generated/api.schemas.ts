@@ -209,6 +209,31 @@ export interface AdminDisableTwoFactorInput {
   code: string;
 }
 
+export interface AdminPushVapidKey {
+  publicKey: string;
+  enabled: boolean;
+}
+
+export interface AdminPushStatus {
+  configured: boolean;
+  subscribed: boolean;
+  deviceCount: number;
+}
+
+export interface AdminPushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface AdminPushSubscriptionInput {
+  endpoint: string;
+  keys: AdminPushSubscriptionKeys;
+}
+
+export interface AdminPushUnsubscribeInput {
+  endpoint: string;
+}
+
 export interface AdminChangePasswordInput {
   currentPassword: string;
   /** @minLength 8 */
@@ -261,6 +286,12 @@ export interface AdminUpdateProductInput {
 export interface PresignUploadInput {
   filename: string;
   contentType: string;
+}
+
+export interface UploadImageResponse {
+  /** URL publique via R2_PUBLIC_URL (ex. media.davilla-rondeur.fr) */
+  publicUrl: string;
+  key: string;
 }
 
 export interface PresignUploadResponse {
@@ -384,6 +415,10 @@ limit?: number | null;
 
 export type GetCartParams = {
 sessionId: string;
+};
+
+export type AdminUploadImageBody = {
+  file: Blob;
 };
 
 export type AdminListOrdersParams = {

@@ -1,7 +1,8 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { createPortailQueryClient } from "@/lib/portail-query-client";
 
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard/index";
@@ -13,7 +14,7 @@ import AdminProducts from "@/pages/admin/products/index";
 import AdminProductEdit from "@/pages/admin/products/edit";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+const queryClient = createPortailQueryClient();
 
 function Router() {
   return (

@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 const projectRoot = path.resolve(import.meta.dirname);
@@ -46,7 +47,48 @@ export default defineConfig(() => {
   return {
     appType: "mpa",
     base: basePath,
-    plugins: [portailDevSpaFallback(), react(), tailwindcss()],
+    plugins: [
+      portailDevSpaFallback(),
+      react(),
+      tailwindcss(),
+      VitePWA({
+        registerType: "autoUpdate",
+        injectRegister: false,
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "portail-sw.ts",
+        manifest: {
+          name: "Davilla Rondeur — Admin",
+          short_name: "Davilla Admin",
+          description: "Portail administrateur Davilla Rondeur",
+          theme_color: "#171717",
+          background_color: "#fafafa",
+          display: "standalone",
+          orientation: "portrait-primary",
+          start_url: "/",
+          scope: "/",
+          lang: "fr",
+          icons: [
+            {
+              src: "/images/logo.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "any",
+            },
+            {
+              src: "/images/logo.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ],
+        },
+        devOptions: {
+          enabled: true,
+          type: "module",
+        },
+      }),
+    ],
     resolve: {
       alias: {
         "@": path.resolve(projectRoot, "src"),

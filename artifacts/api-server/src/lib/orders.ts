@@ -10,6 +10,7 @@ import {
   type OrderItem,
 } from "@workspace/db";
 import { sendOrderConfirmationEmail, isResendConfigured } from "./email";
+import { notifyAdminsNewOrder } from "./admin-push";
 import { logger } from "./logger";
 import { getStripe, isStripeConfigured } from "./stripe";
 import {
@@ -180,6 +181,7 @@ export async function reconcileOrderWithStripe(
 
     const paymentIntentId = getPaymentIntentIdFromSession(session);
     const sessionPaid = session.payment_status === "paid" && session.status === "complete";
+    const becamePaid = order.status === "pending" && sessionPaid;
     const customerEmail = session.customer_details?.email?.trim();
     const customerPhone = session.customer_details?.phone?.trim() ?? null;
 
@@ -225,6 +227,16 @@ export async function reconcileOrderWithStripe(
 
     if (updated && orderIsPaid(updated.status)) {
       await ensureOrderConfirmationEmailSent(orderId);
+    }
+
+    if (becamePaid && updated) {
+      const items = await db
+        .select({ id: orderItemsTable.id })
+        .from(orderItemsTable)
+        .where(eq(orderItemsTable.orderId, orderId));
+      void notifyAdminsNewOrder(updated, items.length).catch((error) => {
+        logger.warn({ err: error, orderId }, "Notification push admin échouée");
+      });
     }
 
     logger.info(

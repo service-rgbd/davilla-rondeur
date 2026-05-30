@@ -7,7 +7,9 @@ import {
   useAdminSetupTwoFactor,
 } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { PushNotificationsSection } from "@/components/admin/push-notifications-section";
 import { getAdminEmail } from "@/lib/admin-auth";
+import { clearTwoFactorPromptDismissed } from "@/lib/admin-session-storage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -101,6 +103,7 @@ export default function AdminSettings() {
       {
         onSuccess: () => {
           setDisableCode("");
+          clearTwoFactorPromptDismissed();
           void refetchTwoFactor();
           toast({ title: "Double authentification désactivée" });
         },
@@ -132,7 +135,7 @@ export default function AdminSettings() {
           <p className="font-sans text-sm break-all">{email ?? "—"}</p>
         </section>
 
-        <section className="border-t border-border pt-10">
+        <section id="securite" className="border-t border-border pt-10 scroll-mt-24">
           <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-2">
             Double authentification (2FA)
           </h2>
@@ -230,6 +233,16 @@ export default function AdminSettings() {
               {setupTwoFactor.isPending ? "Préparation..." : "Configurer la 2FA"}
             </Button>
           )}
+        </section>
+
+        <section className="border-t border-border pt-10">
+          <h2 className="font-sans text-sm font-semibold uppercase tracking-widest mb-2">
+            Notifications push
+          </h2>
+          <p className="font-sans text-sm text-muted-foreground mb-6">
+            Alertes en temps réel lorsqu&apos;une commande est payée (PWA).
+          </p>
+          <PushNotificationsSection />
         </section>
 
         <section className="border-t border-border pt-10">
