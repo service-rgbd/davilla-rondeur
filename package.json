@@ -6,7 +6,11 @@
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "deploy:api": "echo \"→ API (Render): git push origin main — déploiement automatique sur api.davilla-rondeur.fr\"",
+    "deploy:boutique": "pnpm --filter @workspace/davilla-rondeur run deploy",
+    "deploy:portail": "pnpm --filter @workspace/davilla-rondeur run deploy:portail",
+    "deploy:frontends": "pnpm run deploy:boutique && pnpm run deploy:portail"
   },
   "private": true,
   "devDependencies": {
