@@ -13,6 +13,8 @@ export default function AdminOrderPrintPage() {
     query: {
       enabled: Number.isFinite(orderId) && orderId > 0,
       queryKey: getAdminGetOrderQueryKey(orderId),
+      staleTime: 0,
+      refetchOnMount: "always",
     },
   });
 

@@ -14,7 +14,9 @@ import { logger } from "./logger";
 import { getStripe, isStripeConfigured } from "./stripe";
 import {
   type ExtractedShipping,
+  describeStripeKeyMismatch,
   extractShippingFromCheckoutSession,
+  getPaymentIntentIdFromSession,
   resolveShippingFromCheckoutSession,
 } from "./stripe-shipping";
 
@@ -104,6 +106,7 @@ function orderHasShipping(order: Order): boolean {
 async function applyShippingToOrder(
   orderId: number,
   shipping: ExtractedShipping,
+  paymentIntentId?: string | null,
 ): Promise<void> {
   await db
     .update(ordersTable)
@@ -114,6 +117,7 @@ async function applyShippingToOrder(
       shippingCity: shipping.city,
       shippingPostalCode: shipping.postalCode,
       shippingCountry: shipping.country,
+      ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
     })
     .where(eq(ordersTable.id, orderId));
 }
@@ -178,24 +182,49 @@ export async function syncOrderShippingFromStripe(orderId: number): Promise<Orde
     return getOrderWithItems(orderId);
   }
 
+  const keyMismatch = describeStripeKeyMismatch(order.stripeSessionId);
+  if (keyMismatch) {
+    logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId }, keyMismatch);
+    return getOrderWithItems(orderId);
+  }
+
   try {
     const stripe = getStripe();
-    const { shipping } = await resolveShippingFromCheckoutSession(stripe, order.stripeSessionId);
+    const { session, shipping } = await resolveShippingFromCheckoutSession(stripe, order.stripeSessionId);
+    const paymentIntentId = getPaymentIntentIdFromSession(session);
 
     if (!shipping?.line1) {
       logger.warn(
         { orderId: order.id, stripeSessionId: order.stripeSessionId },
         "Impossible de récupérer l'adresse Stripe pour cette commande",
       );
+      if (paymentIntentId && !order.stripePaymentIntentId) {
+        await db
+          .update(ordersTable)
+          .set({ stripePaymentIntentId: paymentIntentId })
+          .where(eq(ordersTable.id, order.id));
+      }
       return getOrderWithItems(orderId);
     }
 
-    await applyShippingToOrder(order.id, shipping);
+    await applyShippingToOrder(order.id, shipping, paymentIntentId);
     logger.info({ orderId: order.id }, "Adresse de livraison synchronisée depuis Stripe");
     return getOrderWithItems(orderId);
   } catch (error) {
-    logger.error({ err: error, orderId: order.id }, "Échec synchronisation adresse Stripe");
+    const mismatch = describeStripeKeyMismatch(order.stripeSessionId);
+    if (mismatch) {
+      logger.error({ orderId: order.id, stripeSessionId: order.stripeSessionId, err: error }, mismatch);
+    } else {
+      logger.error({ err: error, orderId: order.id }, "Échec synchronisation adresse Stripe");
+    }
     return getOrderWithItems(orderId);
+  }
+}
+
+export async function syncMissingOrdersShippingFromStripe(orderIds: number[]): Promise<void> {
+  const uniqueIds = [...new Set(orderIds)].slice(0, 25);
+  for (const orderId of uniqueIds) {
+    await syncOrderShippingFromStripe(orderId);
   }
 }
 
@@ -296,22 +325,34 @@ export async function fulfillOrderFromStripeSession(
   }
 
   const shipping = resolvedShipping ?? extractShippingFromCheckoutSession(stripeSession);
-  const paymentIntentId =
-    typeof stripeSession.payment_intent === "string"
-      ? stripeSession.payment_intent
-      : stripeSession.payment_intent?.id ?? null;
+  const paymentIntentId = getPaymentIntentIdFromSession(stripeSession);
 
   if (order.status === "paid") {
     if (!orderHasShipping(order) && shipping?.line1) {
-      await applyShippingToOrder(order.id, shipping);
+      await applyShippingToOrder(order.id, shipping, paymentIntentId);
       logger.info({ orderId: order.id }, "Adresse de livraison récupérée pour commande déjà payée");
     }
+    const synced = await syncOrderShippingFromStripe(order.id);
     const items = await db
       .select()
       .from(orderItemsTable)
       .where(eq(orderItemsTable.orderId, order.id));
-    await maybeSendOrderConfirmationEmail(order, items, stripeSession, shipping);
-    return getOrderWithItems(order.id);
+    await maybeSendOrderConfirmationEmail(
+      order,
+      items,
+      stripeSession,
+      synced?.shippingAddress?.line1
+        ? {
+            name: synced.shippingAddress.name,
+            line1: synced.shippingAddress.line1,
+            line2: synced.shippingAddress.line2,
+            city: synced.shippingAddress.city,
+            postalCode: synced.shippingAddress.postalCode,
+            country: synced.shippingAddress.country,
+          }
+        : shipping,
+    );
+    return synced ?? getOrderWithItems(order.id);
   }
 
   if (!shipping?.line1) {
@@ -343,9 +384,24 @@ export async function fulfillOrderFromStripeSession(
 
   const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
 
-  await maybeSendOrderConfirmationEmail(order, items, stripeSession, shipping);
+  const synced = await syncOrderShippingFromStripe(order.id);
+  await maybeSendOrderConfirmationEmail(
+    order,
+    items,
+    stripeSession,
+    synced?.shippingAddress?.line1
+      ? {
+          name: synced.shippingAddress.name,
+          line1: synced.shippingAddress.line1,
+          line2: synced.shippingAddress.line2,
+          city: synced.shippingAddress.city,
+          postalCode: synced.shippingAddress.postalCode,
+          country: synced.shippingAddress.country,
+        }
+      : shipping,
+  );
 
-  return getOrderWithItems(order.id);
+  return synced ?? getOrderWithItems(order.id);
 }
 
 export async function cancelPendingOrder(orderId: number): Promise<void> {

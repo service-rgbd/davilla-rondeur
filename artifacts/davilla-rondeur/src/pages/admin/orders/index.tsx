@@ -66,10 +66,12 @@ function OrderDetailDialog({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { data: order, isLoading } = useAdminGetOrder(orderId ?? 0, {
+  const { data: order, isLoading, refetch, isFetching } = useAdminGetOrder(orderId ?? 0, {
     query: {
       enabled: open && orderId != null,
       queryKey: getAdminGetOrderQueryKey(orderId ?? 0),
+      staleTime: 0,
+      refetchOnMount: "always",
     },
   });
   const updateMutation = useAdminUpdateOrder();
@@ -100,7 +102,7 @@ function OrderDetailDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading || !order ? (
+        {isLoading || isFetching || !order ? (
           <div className="h-40 animate-pulse bg-muted" />
         ) : (
           <div className="space-y-6 font-sans text-sm">
@@ -159,9 +161,19 @@ function OrderDetailDialog({
                 <div>
                   <p className="font-medium text-amber-900 dark:text-amber-200">Adresse non enregistrée</p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    Cette commande n&apos;a pas d&apos;adresse en base. Les nouveaux paiements Stripe la
-                    enregistrent automatiquement. Contactez le client ({order.email}) si besoin.
+                    L&apos;adresse n&apos;a pas pu être récupérée depuis Stripe. Vérifiez que
+                    Render utilise la clé live (<code className="text-xs">sk_live_…</code>) pour
+                    les commandes réelles, puis rouvrez cette commande.
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-none mt-3"
+                    onClick={() => refetch()}
+                  >
+                    Réessayer depuis Stripe
+                  </Button>
                 </div>
               </div>
             )}

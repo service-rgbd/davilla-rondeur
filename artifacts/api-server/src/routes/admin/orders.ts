@@ -3,11 +3,12 @@ import { count, desc, eq } from "drizzle-orm";
 import { db, orderItemsTable, ordersTable } from "@workspace/db";
 import { AdminUpdateOrderBody } from "@workspace/api-zod";
 import { requireAdmin } from "../../lib/auth";
-import { getOrderWithItems, syncOrderShippingFromStripe } from "../../lib/orders";
+import { getOrderWithItems, syncMissingOrdersShippingFromStripe, syncOrderShippingFromStripe } from "../../lib/orders";
 
 const router: IRouter = Router();
 
 const VALID_STATUSES = new Set(["pending", "paid", "shipped", "delivered", "cancelled"]);
+const PAID_STATUSES = new Set(["paid", "shipped", "delivered"]);
 
 router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
   const statusFilter = typeof req.query.status === "string" ? req.query.status : "all";
@@ -21,8 +22,35 @@ router.get("/admin/orders", requireAdmin, async (req, res): Promise<void> => {
           .where(eq(ordersTable.status, statusFilter))
           .orderBy(desc(ordersTable.createdAt));
 
+  const missingShippingIds = orders
+    .filter(
+      (order) =>
+        PAID_STATUSES.has(order.status) &&
+        order.stripeSessionId &&
+        !order.shippingLine1 &&
+        !order.shippingCity &&
+        !order.shippingPostalCode &&
+        !order.shippingCountry,
+    )
+    .map((order) => order.id);
+
+  if (missingShippingIds.length > 0) {
+    await syncMissingOrdersShippingFromStripe(missingShippingIds);
+  }
+
+  const refreshedOrders =
+    missingShippingIds.length > 0
+      ? statusFilter === "all" || !VALID_STATUSES.has(statusFilter)
+        ? await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
+        : await db
+            .select()
+            .from(ordersTable)
+            .where(eq(ordersTable.status, statusFilter))
+            .orderBy(desc(ordersTable.createdAt))
+      : orders;
+
   const summaries = await Promise.all(
-    orders.map(async (order) => {
+    refreshedOrders.map(async (order) => {
       const items = await db
         .select({ count: count() })
         .from(orderItemsTable)
