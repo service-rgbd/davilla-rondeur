@@ -9,6 +9,7 @@ import {
   getOrderByStripeSessionId,
   OrderError,
 } from "../lib/orders";
+import { CHECKOUT_SHIPPING_COUNTRIES } from "../lib/checkout-shipping-countries";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -57,7 +58,7 @@ router.post("/checkout/sessions", async (req, res): Promise<void> => {
         };
       }),
       shipping_address_collection: {
-        allowed_countries: ["FR", "BE", "CH", "LU", "MC", "DE", "IT", "ES", "GB"],
+        allowed_countries: CHECKOUT_SHIPPING_COUNTRIES,
       },
       phone_number_collection: {
         enabled: true,
