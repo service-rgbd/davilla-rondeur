@@ -7,6 +7,7 @@ import {
   Settings,
   LogOut,
   ExternalLink,
+  MessageSquare,
   Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { PortailServices } from "@/components/admin/portail-services";
 const NAV_ITEMS = [
   { href: adminRoutes.home, label: "Tableau de bord", icon: LayoutDashboard, exact: true },
   { href: adminRoutes.orders, label: "Commandes", icon: ShoppingBag },
+  { href: adminRoutes.reviews, label: "Avis", icon: MessageSquare },
   { href: adminRoutes.products, label: "Produits", icon: Package },
   { href: adminRoutes.contacts, label: "Contacts", icon: Users },
   { href: adminRoutes.settings, label: "Paramètres", icon: Settings },

@@ -13,8 +13,12 @@ export default defineConfig(({ command }) => {
   }
 
   return {
+    appType: "spa",
     base: basePath,
     plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      entries: [path.resolve(import.meta.dirname, "index.html")],
+    },
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "src"),
@@ -36,11 +40,15 @@ export default defineConfig(({ command }) => {
             allowedHosts: true,
             fs: {
               strict: true,
+              deny: [path.resolve(import.meta.dirname, "portail")],
             },
             proxy: {
               "/api": {
-                target: `http://localhost:${process.env.API_PORT ?? "8080"}`,
+                target:
+                  process.env.VITE_API_BASE_URL?.trim() ||
+                  `http://localhost:${process.env.API_PORT ?? "8080"}`,
                 changeOrigin: true,
+                secure: true,
               },
             },
           }

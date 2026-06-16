@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import {
   useAdminGetOrder,
   useAdminListOrders,
@@ -12,6 +13,7 @@ import {
   ORDER_STATUS_OPTIONS,
 } from "@/components/admin/order-status-badge";
 import { ShippingAddressBlock, ShippingAddressInline } from "@/components/admin/shipping-address-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,10 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQueryClient } from "@tanstack/react-query";
-import { Eye, Printer, RefreshCw } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, Loader2, Printer, RefreshCw, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminRoutes } from "@/lib/admin-routes";
+import {
+  listOrderReviews,
+  publishOrderReviews,
+  type AdminProductReview,
+} from "@/lib/product-reviews-api";
 import { formatDateTime, formatEuro, shippingFromSummary } from "@/lib/format-order";
 import { PORTAIL_CACHE } from "@/lib/portail-query-client";
 
@@ -42,6 +49,111 @@ const FILTERS = [
   { value: "delivered", label: "Livrées" },
   { value: "cancelled", label: "Annulées" },
 ] as const;
+
+function AdminReviewStars({ rating }: { rating: number }) {
+  return (
+    <span className="inline-flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((value) => (
+        <Star
+          key={value}
+          className={`h-3.5 w-3.5 ${value <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function OrderReviewsSection({ orderId }: { orderId: number }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "orders", orderId, "reviews"],
+    queryFn: () => listOrderReviews(orderId),
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: () => publishOrderReviews(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", orderId, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+      toast({ title: "Avis publiés sur la boutique" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Publication impossible", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const reviews = data ?? [];
+  const pendingCount = reviews.filter((r: AdminProductReview) => r.status === "pending").length;
+
+  if (isLoading) {
+    return (
+      <section className="border border-border p-4 flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Chargement des avis…
+      </section>
+    );
+  }
+
+  if (reviews.length === 0) {
+    return (
+      <section className="border border-border p-4">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Avis clients</p>
+        <p className="text-sm text-muted-foreground">Aucun avis laissé pour cette commande.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="border border-border overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-muted/40 border-b border-border">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Avis clients</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {pendingCount > 0
+              ? `${pendingCount} en attente de validation`
+              : "Tous les avis sont publiés ou refusés"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="rounded-none text-xs uppercase tracking-widest" asChild>
+            <Link href={adminRoutes.reviews}>Voir tous les avis</Link>
+          </Button>
+          {pendingCount > 0 ? (
+            <Button
+              size="sm"
+              className="rounded-none text-xs uppercase tracking-widest"
+              disabled={publishMutation.isPending}
+              onClick={() => publishMutation.mutate()}
+            >
+              {publishMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Publier les avis ({pendingCount})
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <ul className="divide-y divide-border">
+        {reviews.map((review: AdminProductReview) => (
+          <li key={review.id} className="p-4 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">{review.productName ?? `Produit #${review.productId}`}</p>
+                <p className="text-xs text-muted-foreground">{review.authorName}</p>
+              </div>
+              <Badge variant={review.status === "published" ? "default" : review.status === "pending" ? "secondary" : "outline"}>
+                {review.status === "published" ? "Publié" : review.status === "pending" ? "En attente" : "Refusé"}
+              </Badge>
+            </div>
+            <AdminReviewStars rating={review.rating} />
+            {review.comment ? <p className="text-sm text-muted-foreground">{review.comment}</p> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function OrderDetailDialog({
   orderId,
@@ -199,6 +311,8 @@ function OrderDetailDialog({
                 </tbody>
               </table>
             </section>
+
+            {orderId != null ? <OrderReviewsSection orderId={orderId} /> : null}
           </div>
         )}
       </DialogContent>

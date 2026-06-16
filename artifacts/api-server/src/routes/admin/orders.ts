@@ -10,6 +10,7 @@ import {
   reconcileRecentPendingOrders,
   scheduleRecentPendingReconcile,
 } from "../../lib/orders";
+import { publishPendingReviewsForOrder } from "../../lib/product-reviews";
 
 const router: IRouter = Router();
 
@@ -119,6 +120,10 @@ router.patch("/admin/orders/:id", requireAdmin, async (req, res): Promise<void> 
   }
 
   await db.update(ordersTable).set({ status: parsed.data.status }).where(eq(ordersTable.id, id));
+
+  if (parsed.data.status === "delivered") {
+    await publishPendingReviewsForOrder(id);
+  }
 
   const order = await getOrderWithItems(id);
   if (!order) {

@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { resolveProductGallery } from "@/lib/product-images";
+import { ProductReviewsSection } from "@/components/product-reviews-section";
+import { ProductReviewRatingBadge } from "@/components/product-review-stars";
 
 export default function ProductDetail() {
   const [, params] = useRoute("/produit/:slug");
@@ -140,6 +142,16 @@ export default function ProductDetail() {
 
             <h1 className="text-3xl md:text-4xl font-sans font-bold text-foreground mb-4">{product.name}</h1>
 
+            {(product as { reviewCount?: number; averageRating?: number | null }).reviewCount ? (
+              <div className="mb-4">
+                <ProductReviewRatingBadge
+                  averageRating={(product as { averageRating?: number | null }).averageRating}
+                  reviewCount={(product as { reviewCount?: number }).reviewCount}
+                  className="bg-muted px-3 py-1.5"
+                />
+              </div>
+            ) : null}
+
             <div className="flex items-end gap-4 mb-8">
               <span className="text-2xl font-sans font-semibold text-foreground">
                 {product.price.toFixed(2)} €
@@ -237,6 +249,12 @@ export default function ProductDetail() {
             </Accordion>
           </div>
         </div>
+
+        <ProductReviewsSection
+          productId={product.id}
+          reviewCount={(product as { reviewCount?: number }).reviewCount}
+          averageRating={(product as { averageRating?: number | null }).averageRating}
+        />
       </div>
     </Layout>
   );

@@ -4,6 +4,7 @@ import { useGetOrderByStripeSession, getGetOrderByStripeSessionQueryKey } from "
 import { Link, useSearch } from "wouter";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
+import { OrderItemReviewForm } from "@/components/order-item-review-form";
 import { useListProducts } from "@workspace/api-client-react";
 
 function useStripeSessionId(): string | null {
@@ -97,18 +98,31 @@ export default function OrderSuccess() {
               <ul className="divide-y divide-border">
                 {order.items.map((item) => {
                   const imageUrl = getItemImage(item.productId);
+                  const catalogProduct = products?.find((p) => p.id === item.productId);
                   return (
-                    <li key={item.id} className="py-4 flex gap-4 items-center">
+                    <li key={item.id} className="py-4 flex gap-4 items-start">
                       <div className="w-16 h-16 bg-muted flex-shrink-0 overflow-hidden rounded-sm">
                         {imageUrl ? (
                           <img src={imageUrl} alt={item.productName} className="w-full h-full object-cover" />
                         ) : null}
                       </div>
-                      <div className="flex-grow font-sans">
-                        <p className="font-semibold">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">Quantité : {item.quantity}</p>
+                      <div className="flex-grow font-sans min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{item.productName}</p>
+                            <p className="text-sm text-muted-foreground">Quantité : {item.quantity}</p>
+                          </div>
+                          <p className="font-semibold shrink-0">{(item.price * item.quantity).toFixed(2)} €</p>
+                        </div>
+                        <OrderItemReviewForm
+                          productId={item.productId}
+                          productSlug={catalogProduct?.slug}
+                          productName={item.productName}
+                          orderId={order.id}
+                          email={order.email}
+                          authorName={order.shippingAddress?.name}
+                        />
                       </div>
-                      <p className="font-sans font-semibold">{(item.price * item.quantity).toFixed(2)} €</p>
                     </li>
                   );
                 })}

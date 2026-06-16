@@ -90,3 +90,8 @@ export function invalidateIncomingOrders(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: getAdminListOrdersQueryKey({ status: "all" }) });
   void client.invalidateQueries({ queryKey: getAdminGetDashboardStatsQueryKey() });
 }
+
+export function invalidateAdminReviews(client: QueryClient): void {
+  void client.invalidateQueries({ queryKey: ["admin-reviews"] });
+  void client.invalidateQueries({ queryKey: ["admin", "orders"] });
+}

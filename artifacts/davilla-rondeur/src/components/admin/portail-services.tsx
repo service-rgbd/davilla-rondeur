@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { TwoFactorPromptDialog } from "@/components/admin/two-factor-prompt-dialog";
 import { useAdminPush } from "@/hooks/use-admin-push";
-import { invalidateIncomingOrders } from "@/lib/portail-query-client";
+import { invalidateAdminReviews, invalidateIncomingOrders } from "@/lib/portail-query-client";
 import { adminRoutes } from "@/lib/admin-routes";
 
 /** Services portail : push SW, invalidation cache commandes entrantes, invite 2FA. */
@@ -20,7 +20,10 @@ export function PortailServices() {
       if (event.data?.type === "NEW_ORDER") {
         invalidateIncomingOrders(queryClient);
       }
-      if (event.data?.type === "OPEN_ORDERS") {
+      if (event.data?.type === "NEW_REVIEW") {
+        invalidateAdminReviews(queryClient);
+      }
+      if (event.data?.type === "OPEN_ADMIN" || event.data?.type === "OPEN_ORDERS") {
         setLocation(event.data.url ?? adminRoutes.orders);
       }
     };

@@ -14,10 +14,15 @@ function subscriptionUsesPublicKey(subscription: PushSubscription, publicKey: st
   if (!existingKey) return false;
 
   const expected = urlBase64ToUint8Array(publicKey);
-  const actual =
-    existingKey instanceof Uint8Array
-      ? existingKey
-      : new Uint8Array(existingKey instanceof ArrayBuffer ? existingKey : existingKey.buffer);
+  let actual: Uint8Array;
+  if (existingKey instanceof Uint8Array) {
+    actual = existingKey;
+  } else if (existingKey instanceof ArrayBuffer) {
+    actual = new Uint8Array(existingKey);
+  } else {
+    const view = existingKey as ArrayBufferView;
+    actual = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  }
 
   if (actual.length !== expected.length) return false;
   return expected.every((byte, index) => actual[index] === byte);

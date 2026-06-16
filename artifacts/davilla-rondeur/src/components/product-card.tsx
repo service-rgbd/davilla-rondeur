@@ -3,8 +3,14 @@ import { Product } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { resolveProductImage } from "@/lib/product-images";
+import { ProductReviewRatingBadge } from "@/components/product-review-stars";
 
-export function ProductCard({ product }: { product: Product }) {
+type ProductWithReviews = Product & {
+  reviewCount?: number;
+  averageRating?: number | null;
+};
+
+export function ProductCard({ product }: { product: ProductWithReviews }) {
   const [, setLocation] = useLocation();
   const imageUrl = resolveProductImage(product);
 
@@ -48,6 +54,15 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
+        {(product.reviewCount ?? 0) > 0 ? (
+          <div className="absolute top-3 right-3 z-10">
+            <ProductReviewRatingBadge
+              averageRating={product.averageRating}
+              reviewCount={product.reviewCount}
+            />
+          </div>
+        ) : null}
+
         {/* Hover Action */}
         <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 z-20">
           <Button
@@ -67,6 +82,15 @@ export function ProductCard({ product }: { product: Product }) {
         <h3 className="font-sans font-semibold text-base text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
           {product.name}
         </h3>
+        {(product.reviewCount ?? 0) > 0 && product.averageRating != null ? (
+          <div className="mb-2 flex justify-center">
+            <ProductReviewRatingBadge
+              averageRating={product.averageRating}
+              reviewCount={product.reviewCount}
+              className="bg-transparent shadow-none px-0"
+            />
+          </div>
+        ) : null}
         <div className="flex items-center gap-3 font-sans text-sm mt-auto">
           {product.originalPrice && product.originalPrice > product.price ? (
             <>

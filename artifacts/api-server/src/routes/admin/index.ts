@@ -7,6 +7,7 @@ import adminOrdersRouter from "./orders";
 import adminNewsletterRouter from "./newsletter";
 import adminCustomersRouter from "./customers";
 import adminPushRouter from "./push";
+import adminReviewsRouter from "./reviews";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ router.use(adminDashboardRouter);
 router.use(adminOrdersRouter);
 router.use(adminNewsletterRouter);
 router.use(adminCustomersRouter);
+router.use(adminReviewsRouter);
 router.use(adminPushRouter);
 
 export default router;

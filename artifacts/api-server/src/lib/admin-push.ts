@@ -117,7 +117,14 @@ type PushPayload = {
   url: string;
   tag: string;
   orderId?: number;
+  reviewId?: number;
 };
+
+function truncateText(text: string, maxLength: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
+}
 
 async function sendPushPayload(
   subscriptions: Array<{
@@ -197,7 +204,7 @@ export async function sendAdminPushTest(
   const result = await sendPushPayload(subscriptions, {
     type: "PUSH_TEST",
     title: "Test Davilla Rondeur",
-    body: `Notification test — ${now}. Si vous voyez ceci, les alertes commandes fonctionnent.`,
+    body: `Notification test — ${now}. Si vous voyez ceci, les alertes commandes et avis fonctionnent.`,
     url: "/settings",
     tag: "push-test",
   });
@@ -211,9 +218,8 @@ function formatEuro(value: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value);
 }
 
-export async function notifyAdminsNewOrder(order: Order, itemCount: number): Promise<void> {
+async function notifyAllAdmins(payload: PushPayload): Promise<void> {
   if (!isPushConfigured()) {
-    logger.debug({ orderId: order.id }, "Push admin ignoré — VAPID non configuré");
     return;
   }
 
@@ -224,8 +230,17 @@ export async function notifyAdminsNewOrder(order: Order, itemCount: number): Pro
     return;
   }
 
+  await sendPushPayload(subscriptions, payload);
+}
+
+export async function notifyAdminsNewOrder(order: Order, itemCount: number): Promise<void> {
+  if (!isPushConfigured()) {
+    logger.debug({ orderId: order.id }, "Push admin ignoré — VAPID non configuré");
+    return;
+  }
+
   const total = parseFloat(order.total);
-  await sendPushPayload(subscriptions, {
+  await notifyAllAdmins({
     type: "NEW_ORDER",
     orderId: order.id,
     title: `Nouvelle commande #${order.id}`,
@@ -233,4 +248,33 @@ export async function notifyAdminsNewOrder(order: Order, itemCount: number): Pro
     url: `/orders`,
     tag: `order-${order.id}`,
   });
+}
+
+export async function notifyAdminsNewReview(input: {
+  reviewId: number;
+  orderId: number;
+  productName: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+}): Promise<void> {
+  if (!isPushConfigured()) {
+    logger.debug({ reviewId: input.reviewId }, "Push admin ignoré — VAPID non configuré");
+    return;
+  }
+
+  const stars = `${input.rating}/5`;
+  const preview = truncateText(input.comment, 80);
+
+  await notifyAllAdmins({
+    type: "NEW_REVIEW",
+    reviewId: input.reviewId,
+    orderId: input.orderId,
+    title: "Nouvel avis client",
+    body: `${input.authorName} · ${input.productName} · ${stars} — « ${preview} »`,
+    url: "/reviews",
+    tag: `review-${input.reviewId}`,
+  });
+
+  logger.info({ reviewId: input.reviewId, orderId: input.orderId }, "Notification push nouvel avis envoyée");
 }

@@ -6,10 +6,23 @@ import {
   GetProductParams,
 } from "@workspace/api-zod";
 import { buildProductResponse } from "../lib/products";
+import { getReviewStatsByProductIds } from "../lib/product-reviews";
 
 const router: IRouter = Router();
 
-router.get("/products/featured", async (req, res): Promise<void> => {
+async function withReviewStats<T extends { id: number }>(products: T[]) {
+  const stats = await getReviewStatsByProductIds(products.map((p) => p.id));
+  return products.map((p) => {
+    const reviewStats = stats.get(p.id);
+    return {
+      ...p,
+      reviewCount: reviewStats?.reviewCount ?? 0,
+      averageRating: reviewStats?.averageRating ?? null,
+    };
+  });
+}
+
+router.get("/products/featured", async (_req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(productsTable)
@@ -18,7 +31,8 @@ router.get("/products/featured", async (req, res): Promise<void> => {
     .orderBy(desc(productsTable.id))
     .limit(6);
 
-  res.json(rows.map((r) => buildProductResponse(r.products, r.categories)));
+  const products = rows.map((r) => buildProductResponse(r.products, r.categories));
+  res.json(await withReviewStats(products));
 });
 
 router.get("/products", async (req, res): Promise<void> => {
@@ -44,7 +58,8 @@ router.get("/products", async (req, res): Promise<void> => {
   if (limit != null) query.limit(limit);
 
   const rows = await query;
-  res.json(rows.map((r) => buildProductResponse(r.products, r.categories)));
+  const products = rows.map((r) => buildProductResponse(r.products, r.categories));
+  res.json(await withReviewStats(products));
 });
 
 router.get("/products/:id", async (req, res): Promise<void> => {
@@ -66,7 +81,9 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(buildProductResponse(row.products, row.categories));
+  const product = buildProductResponse(row.products, row.categories);
+  const [withStats] = await withReviewStats([product]);
+  res.json(withStats);
 });
 
 export default router;
