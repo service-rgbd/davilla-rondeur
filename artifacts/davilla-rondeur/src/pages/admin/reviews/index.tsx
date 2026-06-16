@@ -47,7 +47,9 @@ function ReviewRow({
         <div>
           <p className="font-sans font-semibold">{review.authorName}</p>
           <p className="font-sans text-xs text-muted-foreground">
-            Commande #{review.orderId} · Produit #{review.productId}
+            {review.orderId != null
+              ? `Commande #${review.orderId} · Produit #${review.productId}`
+              : `Produit #${review.productId}`}
           </p>
         </div>
         <ProductReviewStars rating={review.rating} />

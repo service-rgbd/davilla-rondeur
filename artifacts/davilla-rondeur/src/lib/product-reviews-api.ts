@@ -10,17 +10,15 @@ export type ProductReviewPublic = {
 };
 
 export type AdminProductReview = ProductReviewPublic & {
-  orderId: number;
-  email: string;
+  orderId: number | null;
+  email: string | null;
   status: string;
   publishedAt: string | null;
   productName?: string | null;
 };
 
 export type SubmitProductReviewInput = {
-  orderId: number;
-  email: string;
-  authorName?: string;
+  authorName: string;
   rating: number;
   comment: string;
 };

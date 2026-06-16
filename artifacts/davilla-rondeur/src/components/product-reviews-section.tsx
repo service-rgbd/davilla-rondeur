@@ -13,29 +13,21 @@ import {
   type ProductReviewPublic,
 } from "@/lib/product-reviews-api";
 
-type ReviewFormDefaults = {
-  orderId?: number;
-  email?: string;
-  authorName?: string;
-};
-
 export function ProductReviewsSection({
   productId,
   reviewCount,
   averageRating,
-  formDefaults,
+  defaultAuthorName,
 }: {
   productId: number;
   reviewCount?: number | null;
   averageRating?: number | null;
-  formDefaults?: ReviewFormDefaults;
+  defaultAuthorName?: string;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(Boolean(formDefaults?.orderId));
-  const [orderId, setOrderId] = useState(formDefaults?.orderId ? String(formDefaults.orderId) : "");
-  const [email, setEmail] = useState(formDefaults?.email ?? "");
-  const [authorName, setAuthorName] = useState(formDefaults?.authorName ?? "");
+  const [showForm, setShowForm] = useState(false);
+  const [authorName, setAuthorName] = useState(defaultAuthorName ?? "");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,9 +41,7 @@ export function ProductReviewsSection({
     event.preventDefault();
     setSubmitting(true);
     void submitProductReview(productId, {
-      orderId: Number.parseInt(orderId, 10),
-      email,
-      authorName: authorName.trim() || undefined,
+      authorName: authorName.trim(),
       rating,
       comment,
     })
@@ -101,44 +91,20 @@ export function ProductReviewsSection({
       {showForm ? (
         <form onSubmit={handleSubmit} className="mb-10 space-y-4 bg-muted/30 border border-border p-6">
           <p className="font-sans text-sm text-muted-foreground">
-            Réservé aux clients ayant commandé ce produit. Votre avis sera visible après validation.
+            Votre avis sera visible sur le site après validation par notre équipe.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-2">
-                N° de commande
-              </label>
-              <input
-                required
-                inputMode="numeric"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value.replace(/\D/g, ""))}
-                className={fieldClassName}
-                placeholder="Ex. 42"
-              />
-            </div>
-            <div>
-              <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-2">
-                Email de commande
-              </label>
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={fieldClassName}
-              />
-            </div>
-          </div>
           <div>
             <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-2">
               Prénom ou pseudo
             </label>
             <input
+              required
+              minLength={2}
+              maxLength={80}
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               className={fieldClassName}
-              placeholder="Optionnel"
+              placeholder="Ex. Marie"
             />
           </div>
           <div>

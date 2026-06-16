@@ -252,7 +252,7 @@ export async function notifyAdminsNewOrder(order: Order, itemCount: number): Pro
 
 export async function notifyAdminsNewReview(input: {
   reviewId: number;
-  orderId: number;
+  orderId?: number | null;
   productName: string;
   authorName: string;
   rating: number;
@@ -269,7 +269,7 @@ export async function notifyAdminsNewReview(input: {
   await notifyAllAdmins({
     type: "NEW_REVIEW",
     reviewId: input.reviewId,
-    orderId: input.orderId,
+    orderId: input.orderId ?? undefined,
     title: "Nouvel avis client",
     body: `${input.authorName} · ${input.productName} · ${stars} — « ${preview} »`,
     url: "/reviews",

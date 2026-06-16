@@ -10,9 +10,7 @@ import {
 const router: IRouter = Router();
 
 const SubmitReviewBody = z.object({
-  orderId: z.number().int().positive(),
-  email: z.string().email(),
-  authorName: z.string().trim().min(2).max(80).optional(),
+  authorName: z.string().trim().min(2).max(80),
   rating: z.number().int().min(1).max(5),
   comment: z.string().trim().min(10).max(2000),
 });
@@ -79,8 +77,8 @@ router.post("/products/:id/reviews", async (req, res): Promise<void> => {
       case "COMMENT_TOO_SHORT":
         res.status(400).json({ error: "Le commentaire doit contenir au moins 10 caractères" });
         return;
-      case "REVIEW_ALREADY_EXISTS":
-        res.status(409).json({ error: "Un avis a déjà été laissé pour ce produit sur cette commande" });
+      case "AUTHOR_NAME_TOO_SHORT":
+        res.status(400).json({ error: "Indiquez un prénom ou pseudo (2 caractères minimum)" });
         return;
       default:
         res.status(400).json({ error: error.message });

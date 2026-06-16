@@ -9,19 +9,16 @@ export function OrderItemReviewForm({
   productId,
   productSlug,
   productName,
-  orderId,
-  email,
-  authorName,
+  defaultAuthorName,
 }: {
   productId: number;
   productSlug?: string;
   productName: string;
-  orderId: number;
-  email: string;
-  authorName?: string | null;
+  defaultAuthorName?: string | null;
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [authorName, setAuthorName] = useState(defaultAuthorName?.trim() ?? "");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -31,9 +28,7 @@ export function OrderItemReviewForm({
     event.preventDefault();
     setSubmitting(true);
     void submitProductReview(productId, {
-      orderId,
-      email,
-      authorName: authorName?.trim() || undefined,
+      authorName: authorName.trim(),
       rating,
       comment,
     })
@@ -78,6 +73,15 @@ export function OrderItemReviewForm({
           <p className="font-sans text-xs text-muted-foreground">
             Avis sur {productName} — publication après validation.
           </p>
+          <input
+            required
+            minLength={2}
+            maxLength={80}
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            className="w-full border border-border px-3 py-2 font-sans text-sm"
+            placeholder="Prénom ou pseudo"
+          />
           <InteractiveReviewStars value={rating} onChange={setRating} />
           <textarea
             required

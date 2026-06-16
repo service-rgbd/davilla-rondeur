@@ -1,14 +1,10 @@
-import { and, avg, count, desc, eq, inArray } from "drizzle-orm";
+import { and, avg, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import {
   db,
-  orderItemsTable,
-  ordersTable,
   productReviewsTable,
   productsTable,
   type ProductReview,
 } from "@workspace/db";
-
-const REVIEWABLE_ORDER_STATUSES = new Set(["paid", "shipped", "delivered"]);
 
 export type ProductReviewPublic = {
   id: number;
@@ -65,42 +61,9 @@ export async function listPublishedReviewsForProduct(productId: number): Promise
   return rows.map(toPublicReview);
 }
 
-async function orderQualifiesForReview(
-  orderId: number,
-  email: string,
-  productId: number,
-): Promise<{ ok: true; authorName: string } | { ok: false; error: string }> {
-  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
-  if (!order) {
-    return { ok: false, error: "Commande introuvable" };
-  }
-
-  if (order.email.trim().toLowerCase() !== email.trim().toLowerCase()) {
-    return { ok: false, error: "L'email ne correspond pas à cette commande" };
-  }
-
-  if (!REVIEWABLE_ORDER_STATUSES.has(order.status)) {
-    return { ok: false, error: "Seules les commandes payées peuvent laisser un avis" };
-  }
-
-  const [item] = await db
-    .select({ id: orderItemsTable.id })
-    .from(orderItemsTable)
-    .where(and(eq(orderItemsTable.orderId, orderId), eq(orderItemsTable.productId, productId)));
-
-  if (!item) {
-    return { ok: false, error: "Ce produit ne figure pas dans la commande indiquée" };
-  }
-
-  const authorName = order.shippingName?.trim() || email.split("@")[0] || "Client";
-  return { ok: true, authorName };
-}
-
 export async function submitProductReview(input: {
   productId: number;
-  orderId: number;
-  email: string;
-  authorName?: string;
+  authorName: string;
   rating: number;
   comment: string;
 }): Promise<{ review: ProductReview; productName: string }> {
@@ -113,37 +76,23 @@ export async function submitProductReview(input: {
     throw new Error("INVALID_RATING");
   }
 
+  const authorName = input.authorName.trim();
+  if (authorName.length < 2) {
+    throw new Error("AUTHOR_NAME_TOO_SHORT");
+  }
+
   const trimmedComment = input.comment.trim();
   if (trimmedComment.length < 10) {
     throw new Error("COMMENT_TOO_SHORT");
-  }
-
-  const qualification = await orderQualifiesForReview(input.orderId, input.email, input.productId);
-  if (!qualification.ok) {
-    throw new Error(qualification.error);
-  }
-
-  const [existing] = await db
-    .select({ id: productReviewsTable.id })
-    .from(productReviewsTable)
-    .where(
-      and(
-        eq(productReviewsTable.orderId, input.orderId),
-        eq(productReviewsTable.productId, input.productId),
-      ),
-    );
-
-  if (existing) {
-    throw new Error("REVIEW_ALREADY_EXISTS");
   }
 
   const [review] = await db
     .insert(productReviewsTable)
     .values({
       productId: input.productId,
-      orderId: input.orderId,
-      email: input.email.trim().toLowerCase(),
-      authorName: input.authorName?.trim() || qualification.authorName,
+      orderId: null,
+      email: null,
+      authorName,
       rating: input.rating,
       comment: trimmedComment,
       status: "pending",
@@ -185,7 +134,7 @@ export async function listReviewsForOrder(orderId: number) {
     })
     .from(productReviewsTable)
     .leftJoin(productsTable, eq(productReviewsTable.productId, productsTable.id))
-    .where(eq(productReviewsTable.orderId, orderId))
+    .where(and(eq(productReviewsTable.orderId, orderId), isNotNull(productReviewsTable.orderId)))
     .orderBy(desc(productReviewsTable.createdAt));
 
   return rows.map(({ review, productName }) => ({

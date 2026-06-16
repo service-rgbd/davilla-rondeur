@@ -118,9 +118,7 @@ export default function OrderSuccess() {
                           productId={item.productId}
                           productSlug={catalogProduct?.slug}
                           productName={item.productName}
-                          orderId={order.id}
-                          email={order.email}
-                          authorName={order.shippingAddress?.name}
+                          defaultAuthorName={order.shippingAddress?.name}
                         />
                       </div>
                     </li>
