@@ -19,6 +19,11 @@ export const ordersTable = pgTable("orders", {
   shippingPostalCode: text("shipping_postal_code"),
   shippingCountry: text("shipping_country"),
   shippingPhone: text("shipping_phone"),
+  trackingNumber: text("tracking_number"),
+  carrier: text("carrier"),
+  colissimoLabelUrl: text("colissimo_label_url"),
+  packageWeightGrams: integer("package_weight_grams"),
+  shippedAt: timestamp("shipped_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   paidAt: timestamp("paid_at"),
 });

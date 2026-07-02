@@ -21,6 +21,7 @@ export function OrderItemReviewForm({
   const [authorName, setAuthorName] = useState(defaultAuthorName?.trim() ?? "");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -31,6 +32,7 @@ export function OrderItemReviewForm({
       authorName: authorName.trim(),
       rating,
       comment,
+      photos,
     })
       .then((result: { message: string }) => {
         setSent(true);
@@ -91,6 +93,13 @@ export function OrderItemReviewForm({
             onChange={(e) => setComment(e.target.value)}
             className="w-full border border-border px-3 py-2 font-sans text-sm"
             placeholder="Votre commentaire..."
+          />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            className="block w-full font-sans text-xs"
+            onChange={(event) => setPhotos(Array.from(event.target.files ?? []).slice(0, 3))}
           />
           <div className="flex gap-2">
             <Button type="submit" disabled={submitting} size="sm" className="rounded-none text-xs">

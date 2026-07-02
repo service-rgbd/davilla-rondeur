@@ -6,6 +6,7 @@ export type ProductReviewPublic = {
   authorName: string;
   rating: number;
   comment: string;
+  photoUrls?: string[];
   createdAt: string;
 };
 
@@ -21,6 +22,7 @@ export type SubmitProductReviewInput = {
   authorName: string;
   rating: number;
   comment: string;
+  photos?: File[];
 };
 
 export function listProductReviews(productId: number) {
@@ -28,10 +30,17 @@ export function listProductReviews(productId: number) {
 }
 
 export function submitProductReview(productId: number, data: SubmitProductReviewInput) {
+  const formData = new FormData();
+  formData.append("authorName", data.authorName);
+  formData.append("rating", String(data.rating));
+  formData.append("comment", data.comment);
+  for (const photo of data.photos ?? []) {
+    formData.append("photos", photo);
+  }
+
   return customFetch<{ id: number; message: string; status: string }>(`/api/products/${productId}/reviews`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: formData,
   });
 }
 

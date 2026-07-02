@@ -13,6 +13,7 @@ import {
   ORDER_STATUS_OPTIONS,
 } from "@/components/admin/order-status-badge";
 import { ShippingAddressBlock, ShippingAddressInline } from "@/components/admin/shipping-address-block";
+import { OrderColissimoSection } from "@/components/admin/order-colissimo-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -311,6 +312,20 @@ function OrderDetailDialog({
                 </tbody>
               </table>
             </section>
+
+            <OrderColissimoSection
+              order={order as typeof order & {
+                trackingNumber?: string | null;
+                carrier?: string | null;
+                colissimoLabelUrl?: string | null;
+                packageWeightGrams?: number | null;
+                shippedAt?: string | null;
+              }}
+              onUpdated={() => {
+                void refetch();
+                queryClient.invalidateQueries({ queryKey: getAdminListOrdersQueryKey() });
+              }}
+            />
 
             {orderId != null ? <OrderReviewsSection orderId={orderId} /> : null}
           </div>

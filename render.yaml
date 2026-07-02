@@ -62,3 +62,29 @@ services:
         value: https://media.davilla-rondeur.fr
       - key: R2_SERVE_VIA_API
         value: "true"
+      - key: COLISSIMO_CONTRACT_NUMBER
+        sync: false
+      - key: COLISSIMO_PASSWORD
+        sync: false
+      - key: COLISSIMO_DEFAULT_WEIGHT_GRAMS
+        value: "500"
+      - key: COLISSIMO_PRODUCT_CODE_FR
+        value: DOM
+      - key: COLISSIMO_PRODUCT_CODE_INTL
+        value: COLI
+      - key: COLISSIMO_COMMERCIAL_NAME
+        value: Davilla Rondeur
+      - key: SHIP_FROM_NAME
+        value: Davilla Rondeur
+      - key: SHIP_FROM_LINE1
+        value: 27 place des fleurs
+      - key: SHIP_FROM_POSTAL_CODE
+        value: "78955"
+      - key: SHIP_FROM_CITY
+        value: Carrières-sous-Poissy
+      - key: SHIP_FROM_COUNTRY
+        value: FR
+      - key: SHIP_FROM_PHONE
+        value: "+33603686294"
+      - key: SHIP_FROM_EMAIL
+        value: support@davilla-rondeur.fr

@@ -8,6 +8,7 @@ export const productReviewsTable = pgTable("product_reviews", {
   email: text("email"),
   rating: integer("rating").notNull(),
   comment: text("comment").notNull(),
+  photoUrls: text("photo_urls").array().notNull().default([]),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   publishedAt: timestamp("published_at"),

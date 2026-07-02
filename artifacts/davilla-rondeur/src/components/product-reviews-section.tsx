@@ -7,6 +7,7 @@ import {
   ProductReviewRatingBadge,
   ProductReviewStars,
 } from "@/components/product-review-stars";
+import { normalizeMediaUrl } from "@/lib/product-images";
 import {
   listProductReviews,
   submitProductReview,
@@ -30,6 +31,7 @@ export function ProductReviewsSection({
   const [authorName, setAuthorName] = useState(defaultAuthorName ?? "");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const { data: reviews, isLoading } = useQuery({
@@ -44,10 +46,12 @@ export function ProductReviewsSection({
       authorName: authorName.trim(),
       rating,
       comment,
+      photos,
     })
       .then((result: { message: string }) => {
         toast({ title: "Avis envoyé", description: result.message });
         setComment("");
+        setPhotos([]);
         setShowForm(false);
         void queryClient.invalidateQueries({ queryKey: ["product-reviews", productId] });
       })
@@ -127,6 +131,26 @@ export function ProductReviewsSection({
               placeholder="Partagez votre expérience avec ce produit..."
             />
           </div>
+          <div>
+            <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-2">
+              Photos (optionnel, max. 3)
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="block w-full font-sans text-sm"
+              onChange={(event) => {
+                const selected = Array.from(event.target.files ?? []).slice(0, 3);
+                setPhotos(selected);
+              }}
+            />
+            {photos.length > 0 ? (
+              <p className="font-sans text-xs text-muted-foreground mt-2">
+                {photos.length} photo{photos.length > 1 ? "s" : ""} sélectionnée{photos.length > 1 ? "s" : ""}
+              </p>
+            ) : null}
+          </div>
           <Button
             type="submit"
             disabled={submitting}
@@ -152,6 +176,21 @@ export function ProductReviewsSection({
                 <ProductReviewStars rating={review.rating} />
               </div>
               <p className="font-sans text-sm text-foreground leading-relaxed whitespace-pre-line">{review.comment}</p>
+              {(review.photoUrls?.length ?? 0) > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {review.photoUrls?.map((url) => (
+                    <a
+                      key={url}
+                      href={normalizeMediaUrl(url) ?? url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block h-24 w-24 overflow-hidden border border-border bg-muted"
+                    >
+                      <img src={normalizeMediaUrl(url) ?? url} alt="" className="h-full w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              ) : null}
               <p className="font-sans text-xs text-muted-foreground mt-3">
                 {new Date(review.createdAt).toLocaleDateString("fr-FR", {
                   day: "numeric",

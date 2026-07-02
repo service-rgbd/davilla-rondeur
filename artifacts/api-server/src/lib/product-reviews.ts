@@ -12,6 +12,7 @@ export type ProductReviewPublic = {
   authorName: string;
   rating: number;
   comment: string;
+  photoUrls: string[];
   createdAt: string;
 };
 
@@ -66,6 +67,7 @@ export async function submitProductReview(input: {
   authorName: string;
   rating: number;
   comment: string;
+  photoUrls?: string[];
 }): Promise<{ review: ProductReview; productName: string }> {
   const [product] = await db.select().from(productsTable).where(eq(productsTable.id, input.productId));
   if (!product) {
@@ -95,6 +97,7 @@ export async function submitProductReview(input: {
       authorName,
       rating: input.rating,
       comment: trimmedComment,
+      photoUrls: input.photoUrls ?? [],
       status: "pending",
     })
     .returning();
@@ -120,6 +123,7 @@ export async function listAdminReviews(statusFilter: string) {
     email: row.email,
     rating: row.rating,
     comment: row.comment,
+    photoUrls: row.photoUrls ?? [],
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     publishedAt: row.publishedAt?.toISOString() ?? null,
@@ -146,6 +150,7 @@ export async function listReviewsForOrder(orderId: number) {
     email: review.email,
     rating: review.rating,
     comment: review.comment,
+    photoUrls: review.photoUrls ?? [],
     status: review.status,
     createdAt: review.createdAt.toISOString(),
     publishedAt: review.publishedAt?.toISOString() ?? null,
@@ -194,6 +199,7 @@ function toPublicReview(row: ProductReview): ProductReviewPublic {
     authorName: row.authorName,
     rating: row.rating,
     comment: row.comment,
+    photoUrls: row.photoUrls ?? [],
     createdAt: (row.publishedAt ?? row.createdAt).toISOString(),
   };
 }

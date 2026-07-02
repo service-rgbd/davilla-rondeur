@@ -50,6 +50,11 @@ export type OrderResponse = {
   stripeSessionId: string | null;
   createdAt: Date;
   paidAt: Date | null;
+  trackingNumber: string | null;
+  carrier: string | null;
+  colissimoLabelUrl: string | null;
+  packageWeightGrams: number | null;
+  shippedAt: Date | null;
 };
 
 export function formatOrder(order: Order, items: OrderItem[]): OrderResponse {
@@ -94,6 +99,11 @@ export function formatOrder(order: Order, items: OrderItem[]): OrderResponse {
     stripeSessionId: order.stripeSessionId,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
+    trackingNumber: order.trackingNumber,
+    carrier: order.carrier,
+    colissimoLabelUrl: order.colissimoLabelUrl,
+    packageWeightGrams: order.packageWeightGrams,
+    shippedAt: order.shippedAt,
   };
 }
 

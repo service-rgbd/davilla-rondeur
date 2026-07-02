@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ProductReviewStars } from "@/components/product-review-stars";
+import { normalizeMediaUrl } from "@/lib/product-images";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +56,21 @@ function ReviewRow({
         <ProductReviewStars rating={review.rating} />
       </div>
       <p className="font-sans text-sm whitespace-pre-line">{review.comment}</p>
+      {(review.photoUrls?.length ?? 0) > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {review.photoUrls?.map((url) => (
+            <a
+              key={url}
+              href={normalizeMediaUrl(url) ?? url}
+              target="_blank"
+              rel="noreferrer"
+              className="block h-20 w-20 overflow-hidden border border-border bg-muted"
+            >
+              <img src={normalizeMediaUrl(url) ?? url} alt="" className="h-full w-full object-cover" />
+            </a>
+          ))}
+        </div>
+      ) : null}
       <p className="font-sans text-xs text-muted-foreground">
         {new Date(review.createdAt).toLocaleString("fr-FR")} · {review.status}
       </p>

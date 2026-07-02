@@ -78,13 +78,19 @@ function sanitizeFilename(filename: string): string {
     .slice(0, 120);
 }
 
+function buildObjectKey(prefix: string, filename: string): string {
+  const safeName = sanitizeFilename(filename) || "file";
+  const folder = prefix.replace(/\/+$/, "");
+  return `${folder}/${Date.now()}-${safeName}`;
+}
+
 export async function createPresignedUpload(input: {
   filename: string;
   contentType: string;
+  prefix?: string;
 }): Promise<{ uploadUrl: string; publicUrl: string; key: string }> {
-  const { bucketName, publicUrl } = getR2Config();
-  const safeName = sanitizeFilename(input.filename) || "image.jpg";
-  const key = `products/${Date.now()}-${safeName}`;
+  const { bucketName } = getR2Config();
+  const key = buildObjectKey(input.prefix ?? "products", input.filename);
 
   const command = new PutObjectCommand({
     Bucket: bucketName,
@@ -105,10 +111,10 @@ export async function uploadObjectToR2(input: {
   buffer: Buffer;
   filename: string;
   contentType: string;
+  prefix?: string;
 }): Promise<{ publicUrl: string; key: string }> {
   const { bucketName } = getR2Config();
-  const safeName = sanitizeFilename(input.filename) || "image.jpg";
-  const key = `products/${Date.now()}-${safeName}`;
+  const key = buildObjectKey(input.prefix ?? "products", input.filename);
 
   await getR2Client().send(
     new PutObjectCommand({
