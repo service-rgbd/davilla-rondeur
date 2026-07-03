@@ -216,7 +216,7 @@ export async function generateColissimoLabel(
   const response = await fetch(config.apiUrl, {
     method: "POST",
     headers: {
-      Accept: "application/json",
+      Accept: "*/*",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -224,8 +224,12 @@ export async function generateColissimoLabel(
 
   const body = Buffer.from(await response.arrayBuffer());
   if (!response.ok) {
-    logger.warn({ status: response.status, orderId: order.id }, "Colissimo HTTP error");
-    throw new Error("COLISSIMO_HTTP_ERROR");
+    const bodyPreview = body.toString("utf8").slice(0, 500);
+    logger.warn(
+      { status: response.status, orderId: order.id, bodyPreview },
+      "Colissimo HTTP error",
+    );
+    throw new Error(`COLISSIMO_HTTP_ERROR (${response.status})`);
   }
 
   const { json, labelPdf } = parseColissimoMtomResponse(body, response.headers.get("content-type"));
