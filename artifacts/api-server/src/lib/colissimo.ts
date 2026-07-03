@@ -109,7 +109,7 @@ function buildGenerateLabelPayload(order: Order, weightGrams: number, config: Co
         commercialName: config.commercialName,
       },
       parcel: {
-        weight: (weightGrams / 1000).toFixed(3),
+        weight: Number((weightGrams / 1000).toFixed(3)),
       },
       sender: {
         senderParcelRef: `order-${order.id}`,
@@ -197,6 +197,78 @@ function extractColissimoErrors(json: ColissimoJsonResponse): string[] {
     .filter((message): message is string => Boolean(message));
 }
 
+function getCheckGenerateLabelUrl(apiUrl: string): string {
+  return apiUrl.replace(/generateLabel\/?$/, "checkGenerateLabel");
+}
+
+async function callColissimoApi(
+  apiUrl: string,
+  order: Order,
+  weightGrams: number,
+  config: ColissimoConfig,
+): Promise<{ json: ColissimoJsonResponse; labelPdf: Buffer | null }> {
+  const payload = buildGenerateLabelPayload(order, weightGrams, config);
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      Accept: "*/*",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = Buffer.from(await response.arrayBuffer());
+  if (!response.ok) {
+    const bodyPreview = body.toString("utf8").slice(0, 500);
+    logger.warn({ status: response.status, orderId: order.id, bodyPreview }, "Colissimo HTTP error");
+
+    try {
+      const errorJson = JSON.parse(bodyPreview) as ColissimoJsonResponse;
+      const errors = extractColissimoErrors(errorJson);
+      if (errors.length) {
+        throw new Error(errors.join(" · "));
+      }
+    } catch (parseError) {
+      if (parseError instanceof Error && !parseError.message.startsWith("Unexpected token")) {
+        throw parseError;
+      }
+    }
+
+    const springError = bodyPreview.match(/"error"\s*:\s*"([^"]+)"/)?.[1];
+    throw new Error(springError ?? `COLISSIMO_HTTP_ERROR (${response.status})`);
+  }
+
+  return parseColissimoMtomResponse(body, response.headers.get("content-type"));
+}
+
+export async function checkColissimoLabel(
+  order: Order,
+  weightGrams?: number,
+): Promise<{ ok: boolean; messages: string[] }> {
+  const config = getColissimoConfig();
+  if (!config) {
+    throw new Error("COLISSIMO_NOT_CONFIGURED");
+  }
+
+  if (!order.shippingLine1 || !order.shippingPostalCode || !order.shippingCity || !order.shippingCountry) {
+    throw new Error("COLISSIMO_MISSING_ADDRESS");
+  }
+
+  const effectiveWeight = weightGrams ?? order.packageWeightGrams ?? config.defaultWeightGrams;
+  const { json } = await callColissimoApi(getCheckGenerateLabelUrl(config.apiUrl), order, effectiveWeight, config);
+  const errors = extractColissimoErrors(json);
+  const infos = (json.messages ?? [])
+    .filter((item) => item.type === "INFOS" || item.type === "WARNING")
+    .map((item) => item.messageContent?.trim())
+    .filter((message): message is string => Boolean(message));
+
+  return {
+    ok: errors.length === 0,
+    messages: errors.length ? errors : infos,
+  };
+}
+
 export async function generateColissimoLabel(
   order: Order,
   weightGrams?: number,
@@ -211,28 +283,7 @@ export async function generateColissimoLabel(
   }
 
   const effectiveWeight = weightGrams ?? order.packageWeightGrams ?? config.defaultWeightGrams;
-  const payload = buildGenerateLabelPayload(order, effectiveWeight, config);
-
-  const response = await fetch(config.apiUrl, {
-    method: "POST",
-    headers: {
-      Accept: "*/*",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const body = Buffer.from(await response.arrayBuffer());
-  if (!response.ok) {
-    const bodyPreview = body.toString("utf8").slice(0, 500);
-    logger.warn(
-      { status: response.status, orderId: order.id, bodyPreview },
-      "Colissimo HTTP error",
-    );
-    throw new Error(`COLISSIMO_HTTP_ERROR (${response.status})`);
-  }
-
-  const { json, labelPdf } = parseColissimoMtomResponse(body, response.headers.get("content-type"));
+  const { json, labelPdf } = await callColissimoApi(config.apiUrl, order, effectiveWeight, config);
   const errors = extractColissimoErrors(json);
   if (errors.length) {
     throw new Error(errors.join(" · "));

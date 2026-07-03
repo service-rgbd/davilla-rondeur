@@ -12,6 +12,7 @@ import {
 } from "../../lib/orders";
 import { publishPendingReviewsForOrder } from "../../lib/product-reviews";
 import {
+  checkColissimoLabel,
   generateColissimoLabel,
   getColissimoConfig,
   getShipFromAddress,
@@ -117,6 +118,42 @@ router.get("/admin/colissimo/status", requireAdmin, (_req, res): void => {
     productCodeInternational: config?.productCodeInternational ?? "COLI",
     defaultWeightGrams: config?.defaultWeightGrams ?? 500,
   });
+});
+
+router.post("/admin/colissimo/check", requireAdmin, async (req, res): Promise<void> => {
+  const orderId = Number.parseInt(String(req.body?.orderId ?? ""), 10);
+  const weightGrams =
+    req.body?.weightGrams !== undefined ? Number.parseInt(String(req.body.weightGrams), 10) : undefined;
+
+  if (!Number.isFinite(orderId)) {
+    res.status(400).json({ error: "orderId requis" });
+    return;
+  }
+
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId));
+  if (!existing) {
+    res.status(404).json({ error: "Commande introuvable" });
+    return;
+  }
+
+  try {
+    const result = await checkColissimoLabel(existing, weightGrams);
+    res.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "COLISSIMO_NOT_CONFIGURED") {
+        res.status(503).json({ error: "Colissimo non configuré sur le serveur (variables COLISSIMO_*)" });
+        return;
+      }
+      if (error.message === "COLISSIMO_MISSING_ADDRESS") {
+        res.status(400).json({ error: "Adresse de livraison incomplète pour Colissimo" });
+        return;
+      }
+      res.status(400).json({ ok: false, messages: [error.message] });
+      return;
+    }
+    res.status(500).json({ error: "Impossible de tester Colissimo" });
+  }
 });
 
 const ColissimoLabelBody = z.object({
