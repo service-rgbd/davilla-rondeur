@@ -11,10 +11,16 @@ import {
 } from "../lib/orders";
 import { CHECKOUT_SHIPPING_COUNTRIES } from "../lib/checkout-shipping-countries";
 import { logger } from "../lib/logger";
+import { isMaintenanceMode, respondMaintenanceBlocked } from "../lib/maintenance";
 
 const router: IRouter = Router();
 
 router.post("/checkout/sessions", async (req, res): Promise<void> => {
+  if (isMaintenanceMode()) {
+    respondMaintenanceBlocked(res);
+    return;
+  }
+
   const parsed = CreateCheckoutSessionBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

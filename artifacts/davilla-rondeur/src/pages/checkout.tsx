@@ -1,6 +1,8 @@
 import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
+import { useMaintenanceStatus } from "@/hooks/use-maintenance";
 import { useGetCart, getGetCartQueryKey, useCreateCheckoutSession } from "@workspace/api-client-react";
 import { getSessionId } from "@/lib/session";
 import { Link } from "wouter";
@@ -12,6 +14,7 @@ export default function Checkout() {
   const sessionId = getSessionId();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
+  const { data: maintenance, isLoading: maintenanceLoading } = useMaintenanceStatus();
 
   const { data: cart, isLoading } = useGetCart(
     { sessionId },
@@ -63,7 +66,16 @@ export default function Checkout() {
           Commande invité — aucune inscription requise. Vous serez redirigé vers Stripe pour un paiement sécurisé.
         </p>
 
-        {isLoading ? (
+        {maintenanceLoading ? (
+          <div className="animate-pulse h-64 bg-muted w-full" />
+        ) : maintenance?.paymentsBlocked ? (
+          <MaintenanceNotice
+            message={maintenance.message}
+            supportEmail={maintenance.supportEmail}
+            backHref="/panier"
+            backLabel="Retour au panier"
+          />
+        ) : isLoading ? (
           <div className="animate-pulse h-64 bg-muted w-full" />
         ) : isEmpty ? (
           <div className="text-center py-16 bg-muted/30 border border-border">

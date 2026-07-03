@@ -4,6 +4,8 @@ import { useAdminLogin, useAdminVerifyTwoFactor } from "@workspace/api-client-re
 import { setAdminSession, isAdminLoggedIn } from "@/lib/admin-auth";
 import { adminRoutes } from "@/lib/admin-routes";
 import { BrandLogo } from "@/components/brand-logo";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
+import { useMaintenanceStatus } from "@/hooks/use-maintenance";
 
 const LOGIN_IMAGE = "/images/photo_2026-05-24%2017.46.23.jpeg";
 
@@ -26,6 +28,7 @@ export default function AdminLogin() {
 
   const loginMutation = useAdminLogin();
   const verifyTwoFactor = useAdminVerifyTwoFactor();
+  const { data: maintenance, isLoading: maintenanceLoading } = useMaintenanceStatus();
 
   const completeLogin = (token: string, userEmail: string) => {
     setAdminSession(token, userEmail);
@@ -108,12 +111,24 @@ export default function AdminLogin() {
             {step === "2fa" ? "Vérification 2FA" : "Connexion"}
           </h1>
           <p className="font-sans text-sm text-muted-foreground mb-12">
-            {step === "2fa"
-              ? "Saisissez le code à 6 chiffres de votre application d'authentification."
-              : "Accès réservé à l'équipe Davilla Rondeur"}
+            {maintenance?.adminLoginBlocked
+              ? "Les nouvelles connexions sont temporairement suspendues."
+              : step === "2fa"
+                ? "Saisissez le code à 6 chiffres de votre application d'authentification."
+                : "Accès réservé à l'équipe Davilla Rondeur"}
           </p>
 
-          {step === "credentials" ? (
+          {maintenanceLoading ? (
+            <div className="animate-pulse h-48 bg-muted/40" />
+          ) : maintenance?.adminLoginBlocked ? (
+            <MaintenanceNotice
+              message={maintenance.message}
+              supportEmail={maintenance.supportEmail}
+              backHref={adminRoutes.storeUrl}
+              backLabel="Retour à la boutique"
+              compact
+            />
+          ) : step === "credentials" ? (
             <form onSubmit={handleCredentialsSubmit} className="space-y-10">
               <div>
                 <label

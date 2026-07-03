@@ -3,6 +3,8 @@ import { useGetCart, useRemoveFromCart, getGetCartQueryKey, useListProducts } fr
 import { getSessionId } from "@/lib/session";
 import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
+import { useMaintenanceStatus } from "@/hooks/use-maintenance";
 import { Trash2, ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { resolveProductImage } from "@/lib/product-images";
@@ -21,6 +23,7 @@ export default function Cart() {
   );
 
   const { data: allProducts } = useListProducts();
+  const { data: maintenance } = useMaintenanceStatus();
 
   const removeMutation = useRemoveFromCart();
 
@@ -183,16 +186,26 @@ export default function Cart() {
                   <span className="font-sans font-bold text-3xl text-foreground">{cart.total.toFixed(2)} €</span>
                 </div>
 
-                <Button
-                  asChild
-                  className="w-full bg-foreground text-background hover:bg-primary rounded-none h-14 font-sans uppercase tracking-widest text-sm group"
-                  data-testid="button-checkout"
-                >
-                  <Link href="/checkout">
-                    Procéder au paiement
-                    <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
+                {maintenance?.paymentsBlocked ? (
+                  <MaintenanceNotice
+                    message={maintenance.message}
+                    supportEmail={maintenance.supportEmail}
+                    backHref="/boutique"
+                    backLabel="Continuer mes achats"
+                    compact
+                  />
+                ) : (
+                  <Button
+                    asChild
+                    className="w-full bg-foreground text-background hover:bg-primary rounded-none h-14 font-sans uppercase tracking-widest text-sm group"
+                    data-testid="button-checkout"
+                  >
+                    <Link href="/checkout">
+                      Procéder au paiement
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                )}
 
                 <div className="mt-6 flex justify-center gap-4 opacity-50">
                   <span className="text-xs font-sans">Paiement sécurisé</span>

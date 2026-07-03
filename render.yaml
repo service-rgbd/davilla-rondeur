@@ -88,3 +88,9 @@ services:
         value: "+33603686294"
       - key: SHIP_FROM_EMAIL
         value: support@davilla-rondeur.fr
+      - key: MAINTENANCE_MODE
+        value: "false"
+      - key: MAINTENANCE_MESSAGE
+        value: "Le site est en cours de maintenance. Contactez le support technique pour la remise en marche."
+      - key: MAINTENANCE_SUPPORT_EMAIL
+        value: support@davilla-rondeur.fr

@@ -17,6 +17,7 @@ import {
   verifyTwoFactorChallenge,
 } from "../../lib/admin-2fa";
 import { consumeRateLimit, getClientIp } from "../../lib/rate-limit";
+import { isMaintenanceMode, respondMaintenanceBlocked } from "../../lib/maintenance";
 import {
   AdminChangePasswordBody,
   AdminDisableTwoFactorBody,
@@ -42,6 +43,11 @@ function sendRateLimited(res: ExpressResponse, retryAfterSec: number): void {
 type ExpressResponse = import("express").Response;
 
 router.post("/admin/auth/login", async (req, res): Promise<void> => {
+  if (isMaintenanceMode()) {
+    respondMaintenanceBlocked(res);
+    return;
+  }
+
   const parsed = AdminLoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -81,6 +87,11 @@ router.post("/admin/auth/login", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/auth/verify-2fa", async (req, res): Promise<void> => {
+  if (isMaintenanceMode()) {
+    respondMaintenanceBlocked(res);
+    return;
+  }
+
   const parsed = AdminVerifyTwoFactorBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
